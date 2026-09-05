@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Locais & Departamentos | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Locais & Departamentos</h3>
+        <p class="page-header-subtitle">Controle físico de unidades, prédios, salas e setores da organização.</p>
+    </div>
+    {% if can('locais.criar') %}
+    <a href="/locations/new" class="btn btn-primary">
+        <i class="bi bi-building-add me-1"></i> Cadastrar Novo Local
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    {% if locations %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Nome / Identificação</th>
+                    <th>Filial</th>
+                    <th>Departamento</th>
+                    <th>Prédio / Andar / Sala</th>
+                    <th>Gestor</th>
+                    <th class="text-center">Bens</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loc in locations %}
+                <tr>
+                    <td>
+                        <strong style="color:var(--c-text);"><i class="bi bi-geo-alt-fill me-1" style="color:var(--red);"></i>{{ loc.name }}</strong>
+                        {% if loc.description %}
+                        <div class="text-muted truncate-2" style="font-size:.76rem;">{{ loc.description }}</div>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge-soft-gray">{{ loc.branch }}</span></td>
+                    <td><span class="badge badge-soft-primary">{{ loc.department }}</span></td>
+                    <td class="small text-muted">
+                        {{ loc.building or '-' }} • {{ loc.floor or '-' }} • {{ loc.room or '-' }}
+                    </td>
+                    <td class="small">{{ loc.manager_name or '-' }}</td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill" style="background:var(--c-primary);color:#fff;font-size:.85rem;padding:.3rem .7rem;">
+                            {{ loc.assets_count }}
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <a href="/assets?location_id={{ loc.id }}" class="btn btn-ghost btn-sm">
+                            <i class="bi bi-boxes me-1"></i> Ver Bens
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-building empty-state-icon"></i>
+        <div class="empty-state-title">Nenhum local cadastrado</div>
+        {% if can('locais.criar') %}
+        <a href="/locations/new" class="btn btn-primary btn-sm mt-2">Cadastrar Primeiro Local</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Visão Geral do Patrimônio</h3>
+        <p class="page-header-subtitle">Controle integrado de inventário, status operacional e fluxo recente de movimentações.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can('relatorios.visualizar') %}
+        <a href="/reports/inventory" class="btn btn-ghost">
+            <i class="bi bi-download"></i> Exportar
+        </a>
+        {% endif %}
+        {% if can('movimentacao.criar') %}
+        <a href="/movements/new" class="btn btn-primary">
+            <i class="bi bi-arrow-left-right"></i> Nova Movimentação
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card-kpi">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label">Total de Equipamentos</div>
+                    <div class="kpi-value mt-1" data-target="{{ stats.total_assets }}">0</div>
+                </div>
+                <div class="kpi-icon-wrap" style="background:var(--c-surface-alt);color:var(--c-text-secondary);">
+                    <i class="bi bi-laptop"></i>
+                </div>
+            </div>
+            <div class="kpi-footer">
+                <span>Valor Total do Acervo</span>
+                <span class="fw-bold" style="color:var(--c-text);">R$ {{ "{:,.2f}".format(stats.total_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card-kpi">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label">Bens em Uso</div>
+                    <div class="kpi-value mt-1" style="color:var(--blue);" data-target="{{ stats.status_counts.in_use }}">0</div>
+                </div>
+                <div class="kpi-icon-wrap" style="background:var(--blue-bg);color:var(--blue);">
+                    <i class="bi bi-person-check"></i>
+                </div>
+            </div>
+            <div class="kpi-footer">
+                <span>Disponíveis no Estoque</span>
+                <span class="fw-bold" style="color:var(--green);">{{ stats.status_counts.available }} itens</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card-kpi">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label">Em Manutenção</div>
+                    <div class="kpi-value mt-1" style="color:var(--amber);" data-target="{{ stats.status_counts.in_maintenance }}">0</div>
+                </div>
+                <div class="kpi-icon-wrap" style="background:var(--amber-bg);color:var(--amber);">
+                    <i class="bi bi-wrench"></i>
+                </div>
+            </div>
+            <div class="kpi-footer">
+                <span>Ordens de Serviço Abertas</span>
+                <span class="fw-bold" style="color:var(--c-text);">{{ stats.active_maintenances }} OS</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card-kpi">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label">Movimentações</div>
+                    <div class="kpi-value mt-1" style="color:var(--indigo);" data-target="{{ stats.total_movements }}">0</div>
+                </div>
+                <div class="kpi-icon-wrap" style="background:var(--c-primary-50);color:var(--indigo);">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+            </div>
+            <div class="kpi-footer">
+                <span>Colaboradores Ativos</span>
+                <span class="fw-bold" style="color:var(--c-text);">{{ stats.total_custodians }} pessoas</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-4">
+        <div class="card p-4">
+            <div class="section-divider mb-3">
+                <i class="bi bi-pie-chart"></i> Status dos Equipamentos
+            </div>
+            <div class="d-flex justify-content-center align-items-center flex-grow-1" style="min-height:220px;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="card p-4">
+            <div class="section-divider mb-3">
+                <i class="bi bi-bar-chart"></i> Distribuição por Categoria
+            </div>
+            <div style="min-height:220px;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Movements -->
+<div class="card">
+    <div class="card-header-clean">
+        <div>
+            <h6 class="fw-bold mb-0" style="font-size:.9rem;">Fluxo Recente de Movimentações</h6>
+            <span class="text-muted small">Últimas transferências e alterações de custódia</span>
+        </div>
+        {% if can('movimentacao.visualizar') %}
+        <a href="/movements" class="btn btn-ghost btn-sm">
+            Ver Tudo <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+        {% endif %}
+    </div>
+
+    {% if stats.recent_movements %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Tombamento</th>
+                    <th>Equipamento</th>
+                    <th>Ação</th>
+                    <th>Destino</th>
+                    <th>Operador</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in stats.recent_movements %}
+                <tr>
+                    <td class="text-muted small text-nowrap">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td><span class="tag-badge">{{ m.asset.tag }}</span></td>
+                    <td>
+                        <a href="/assets/{{ m.asset_id }}" class="fw-semibold text-decoration-none" style="color:var(--c-text);">
+                            {{ m.asset.name }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="badge badge-soft-primary font-monospace" style="font-size:.68rem;">
+                            {{ m.movement_type.value }}
+                        </span>
+                    </td>
+                    <td class="small">
+                        {% if m.destination_custodian_name %}
+                            <span class="fw-medium" style="color:var(--c-text);"><i class="bi bi-person text-muted me-1"></i>{{ m.destination_custodian_name }}</span>
+                        {% else %}
+                            <span class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ m.destination_location_name or 'Estoque' }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">{{ m.operator_name }}</td>
+                    <td class="text-end text-nowrap">
+                        {% if m.term_code %}
+                        <a href="/movements/{{ m.id }}/term" class="btn btn-ghost btn-icon" title="Termo de Cautela" target="_blank">
+                            <i class="bi bi-printer"></i>
+                        </a>
+                        {% endif %}
+                        <a href="/assets/{{ m.asset_id }}" class="btn btn-ghost btn-icon" title="Ver Bem">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-clock-history empty-state-icon"></i>
+        <div class="empty-state-title">Nenhuma movimentação recente</div>
+        <div class="empty-state-text">As movimentações aparecerão aqui conforme forem registradas.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Cores dos gráficos adaptadas ao tema (claro/escuro)
+    function themeChartColors() {
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        return dark
+            ? { tick: '#94a3b8', grid: '#2a2f3e' }
+            : { tick: '#6b7280', grid: '#f3f4f6' };
+    }
+
+    let statusChart = null;
+    let categoryChart = null;
+
+    function initCharts() {
+        const statusCtx = document.getElementById('statusChart');
+        const catCtx = document.getElementById('categoryChart');
+        if (!statusCtx || !catCtx) return;
+        const c = themeChartColors();
+
+        if (statusChart) { statusChart.destroy(); }
+        if (categoryChart) { categoryChart.destroy(); }
+
+        statusChart = new Chart(statusCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Disponível', 'Em Uso', 'Em Manutenção', 'Baixado'],
+                datasets: [{
+                    data: [
+                        {{ stats.status_counts.available }},
+                        {{ stats.status_counts.in_use }},
+                        {{ stats.status_counts.in_maintenance }},
+                        {{ stats.status_counts.written_off }}
+                    ],
+                    backgroundColor: ['#059669', '#4f46e5', '#d97706', '#9ca3af'],
+                    borderWidth: 0,
+                    hoverOffset: 4,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 10,
+                            color: c.tick,
+                            font: { family: 'Plus Jakarta Sans', size: 11, weight: '500' },
+                            padding: 14,
+                            usePointStyle: true,
+                            pointStyleWidth: 8
+                        }
+                    }
+                }
+            }
+        });
+
+        const catData = {{ stats.category_distribution | tojson }};
+        categoryChart = new Chart(catCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: catData.map(x => x.category),
+                datasets: [{
+                    data: catData.map(x => x.count),
+                    backgroundColor: '#818cf8',
+                    hoverBackgroundColor: '#6366f1',
+                    borderRadius: 6,
+                    maxBarThickness: 36
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: c.tick, font: { family: 'Plus Jakarta Sans', size: 10 } } },
+                    y: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.tick, stepSize: 1, font: { family: 'Plus Jakarta Sans', size: 10 } } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    initCharts();
+    document.addEventListener('DOMContentLoaded', initCharts);
+    document.addEventListener('sispatrim-theme-change', initCharts);
+</script>
+{% endblock %}

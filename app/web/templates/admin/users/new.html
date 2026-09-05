@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Usuário | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="page-header">
+            <div>
+                <h3 class="page-header-title">Novo Usuário</h3>
+                <p class="page-header-subtitle">Princípio do menor privilégio: atribua apenas os perfis necessários.</p>
+            </div>
+            <a href="/admin/users" class="btn btn-ghost">
+                <i class="bi bi-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 py-2 small" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/admin/users/new" class="card p-4">
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Usuário (login) <span class="text-danger">*</span></label>
+                    <input type="text" name="username" class="form-control" required autocomplete="off">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Senha <span class="text-danger">*</span></label>
+                    <input type="password" name="password" class="form-control" required autocomplete="new-password">
+                    <div class="form-text">Mínimo de 8 caracteres. Nunca armazenada em texto puro.</div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Nome Completo</label>
+                    <input type="text" name="full_name" class="form-control" autocomplete="off">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">E-mail</label>
+                    <input type="email" name="email" class="form-control" autocomplete="off">
+                </div>
+            </div>
+
+            <div class="form-section mt-4"><i class="bi bi-shield-lock"></i> Perfis de Acesso</div>
+            <div class="row g-2">
+                {% for r in roles %}
+                <div class="col-12 col-md-6">
+                    <label class="d-block p-3 border rounded" style="cursor:pointer;">
+                        <input class="form-check-input" type="checkbox" name="role_ids" value="{{ r.id }}">
+                        <span class="fw-semibold ms-2" style="color:var(--c-text);">{{ r.name }}</span>
+                        {% if r.description %}
+                        <small class="text-muted d-block mt-1 ms-4" style="font-size:.76rem;">{{ r.description }}</small>
+                        {% endif %}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
+                <a href="/admin/users" class="btn btn-ghost px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-person-plus me-1"></i> Criar Usuário
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

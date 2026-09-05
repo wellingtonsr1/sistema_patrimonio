@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório de Auditoria de Movimentações | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header no-print">
+    <div>
+        <h3 class="page-header-title">Trilha de Auditoria & Fluxo</h3>
+        <p class="page-header-subtitle">Relatório consolidado de todas as transferências e histórico temporal de ativos.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can('relatorios.exportar') %}
+        <a href="/api/v1/reports/movements/csv" class="btn btn-success" download>
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Baixar CSV
+        </a>
+        {% endif %}
+        <button onclick="window.print()" class="btn btn-ghost">
+            <i class="bi bi-printer me-1"></i> Imprimir
+        </button>
+    </div>
+</div>
+
+<div class="card p-4">
+    <div class="border-bottom pb-3 mb-3 text-center">
+        <h4 class="fw-bold mb-0 text-uppercase" style="font-size:1.1rem;">{{ company_name }}</h4>
+        <div class="small text-muted">Trilha de Auditoria Patrimonial • {{ total }} registros</div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle small mb-0">
+            <thead>
+                <tr>
+                    <th>Data / Hora</th>
+                    <th>Tombamento</th>
+                    <th>Equipamento</th>
+                    <th>Tipo</th>
+                    <th>Origem</th>
+                    <th>Destino</th>
+                    <th>Status</th>
+                    <th>Motivo</th>
+                    <th>Operador</th>
+                    <th>Termo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movements %}
+                <tr>
+                    <td class="text-nowrap">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td class="font-monospace fw-bold">{{ m.asset.tag }}</td>
+                    <td>{{ m.asset.name }}</td>
+                    <td><span class="badge badge-soft-primary font-monospace" style="font-size:.68rem;">{{ m.movement_type.value }}</span></td>
+                    <td class="small">
+                        {{ m.origin_location_name or '-' }}
+                        {% if m.origin_custodian_name %}<br><span class="text-muted">({{ m.origin_custodian_name }})</span>{% endif %}
+                    </td>
+                    <td class="small">
+                        <strong style="color:var(--c-primary-text);">{{ m.destination_location_name or '-' }}</strong>
+                        {% if m.destination_custodian_name %}<br><span style="color:var(--c-primary-text);">({{ m.destination_custodian_name }})</span>{% endif %}
+                    </td>
+                    <td><span class="status-pill status-pill-{{ m.new_status.value }}">{{ m.new_status.value }}</span></td>
+                    <td class="truncate-2" style="max-width:200px;">{{ m.reason }}</td>
+                    <td class="small text-muted">{{ m.operator_name }}</td>
+                    <td class="font-monospace text-center small">
+                        {% if m.term_code %}
+                        <a href="/movements/{{ m.id }}/term" target="_blank" class="text-decoration-none" style="color:var(--c-primary-text);">{{ m.term_code }}</a>
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

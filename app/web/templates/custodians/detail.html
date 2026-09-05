@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}{{ custodian.name }} | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="detail-hero mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-primary text-white d-flex align-items-center justify-content-center" style="width:48px;height:48px;border-radius:12px;font-size:1.3rem;">
+                <i class="bi bi-person-badge"></i>
+            </div>
+            <div>
+                <h3 class="fw-bold mb-0" style="font-size:1.25rem;">{{ custodian.name }}</h3>
+                <div class="text-muted small">
+                    Matrícula: <strong>{{ custodian.registration_code }}</strong> • {{ custodian.role }} • {{ custodian.department }}
+                </div>
+                <div class="text-muted small"><i class="bi bi-envelope me-1"></i>{{ custodian.email }} {% if custodian.cpf %}• CPF: {{ custodian.cpf }}{% endif %}</div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            {% if can('movimentacao.criar') %}
+            <a href="/movements/new" class="btn btn-primary btn-sm">
+                <i class="bi bi-arrow-repeat me-1"></i> Alocar Equipamento
+            </a>
+            {% endif %}
+            <a href="/custodians" class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header-clean">
+        <div>
+            <h6 class="fw-bold mb-0" style="font-size:.9rem;">
+                <i class="bi bi-laptop me-1" style="color:var(--c-primary-text);"></i> Equipamentos sob Custódia
+            </h6>
+            <span class="text-muted small">{{ assets|length }} equipamento(s) registrado(s)</span>
+        </div>
+    </div>
+
+    {% if assets %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Tombamento</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Status</th>
+                    <th>Condição</th>
+                    <th>Valor</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assets %}
+                <tr>
+                    <td>
+                        <a href="/assets/{{ a.id }}" class="tag-badge text-decoration-none">{{ a.tag }}</a>
+                    </td>
+                    <td>
+                        <a href="/assets/{{ a.id }}" class="fw-semibold text-decoration-none" style="color:var(--c-text);">{{ a.name }}</a>
+                        {% if a.serial_number %}
+                        <div class="text-muted" style="font-size:.74rem;">S/N: {{ a.serial_number }}</div>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge-soft-gray">{{ a.category.value }}</span></td>
+                    <td><span class="status-pill status-pill-{{ a.status.value }}">{{ a.status.value }}</span></td>
+                    <td class="small">{{ a.condition.value }}</td>
+                    <td class="small fw-semibold text-nowrap">
+                        R$ {{ "{:,.2f}".format(a.purchase_value).replace(",", "v").replace(".", ",").replace("v", ".") }}
+                    </td>
+                    <td class="text-end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <a href="/assets/{{ a.id }}" class="btn btn-ghost btn-icon" title="Ver Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if can('movimentacao.criar') %}
+                            <a href="/movements/new?asset_id={{ a.id }}&m_type=DEVOLUCAO_ESTOQUE" class="btn btn-ghost btn-icon" title="Devolver ao Estoque" style="color:var(--amber);">
+                                <i class="bi bi-box-arrow-in-down"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-check2-circle empty-state-icon" style="color:var(--green);"></i>
+        <div class="empty-state-title">Nenhum equipamento em posse deste colaborador</div>
+        <div class="empty-state-text">Todos os bens foram devolvidos ou ainda não foram alocados.</div>
+        {% if can('movimentacao.criar') %}
+        <a href="/movements/new" class="btn btn-primary btn-sm mt-1">Alocar Equipamento</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

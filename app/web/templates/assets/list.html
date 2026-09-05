@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Equipamentos | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Equipamentos & Bens</h3>
+        <p class="page-header-subtitle">Acervo patrimonial registrado e controle de inventário físico.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can('relatorios.exportar') %}
+        <a href="/reports/inventory" class="btn btn-ghost">
+            <i class="bi bi-download"></i> Exportar
+        </a>
+        {% endif %}
+        {% if can('patrimonio.criar') %}
+        <a href="/assets/import" class="btn btn-ghost">
+            <i class="bi bi-filetype-csv"></i> Importar CSV
+        </a>
+        <a href="/assets/new" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Novo Equipamento
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card p-3 mb-4">
+    <form method="get" action="/assets" class="row g-2 align-items-center">
+        <div class="col-12 col-lg-4">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Buscar por tag, nome, modelo, série..." value="{{ search }}">
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+            <select name="status_filter" class="form-select">
+                <option value="">Status: Todos</option>
+                {% for s in statuses %}
+                <option value="{{ s.value }}" {% if selected_status == s.value %}selected{% endif %}>{{ s.value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+            <select name="category_filter" class="form-select">
+                <option value="">Categoria: Todas</option>
+                {% for c in categories %}
+                <option value="{{ c.value }}" {% if selected_category == c.value %}selected{% endif %}>{{ c.value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-4 col-lg-2">
+            <select name="location_id" class="form-select">
+                <option value="">Local: Todos</option>
+                {% for loc in locations %}
+                <option value="{{ loc.id }}" {% if selected_location|string == loc.id|string %}selected{% endif %}>{{ loc.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2 col-lg-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+            {% if search or selected_status or selected_category or selected_location %}
+            <a href="/assets" class="btn btn-ghost" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-header-clean">
+        <span class="text-muted small">Mostrando <strong>{{ assets|length }}</strong> de <strong>{{ total }}</strong> equipamentos</span>
+    </div>
+
+    {% if assets %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Tombamento</th>
+                    <th>Equipamento / Modelo</th>
+                    <th>Categoria</th>
+                    <th>Status</th>
+                    <th>Responsável</th>
+                    <th>Localização</th>
+                    <th>Valor</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assets %}
+                <tr>
+                    <td>
+                        <a href="/assets/{{ a.id }}" class="text-decoration-none">
+                            <span class="tag-badge">{{ a.tag }}</span>
+                        </a>
+                    </td>
+                    <td>
+                        <a href="/assets/{{ a.id }}" class="fw-semibold text-decoration-none" style="color:var(--c-text);">
+                            {{ a.name }}
+                        </a>
+                        <div class="text-muted" style="font-size:.76rem;">
+                            {% if a.brand or a.model %}{{ a.brand or '' }} {{ a.model or '' }} {% endif %}
+                            {% if a.serial_number %}• S/N: <code>{{ a.serial_number }}</code>{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-soft-gray font-monospace" style="font-size:.68rem;">{{ a.category.value }}</span>
+                    </td>
+                    <td>
+                        <span class="status-pill status-pill-{{ a.status.value }}">{{ a.status.value }}</span>
+                    </td>
+                    <td class="small">
+                        {% if a.custodian %}
+                        <a href="/custodians/{{ a.custodian.id }}" class="text-decoration-none" style="color:var(--c-text);">
+                            <i class="bi bi-person text-muted me-1"></i>{{ a.custodian.name }}
+                        </a>
+                        <div class="text-muted" style="font-size:.72rem;">{{ a.custodian.registration_code }}</div>
+                        {% else %}
+                        <span class="text-muted"><i class="bi bi-box me-1"></i>Estoque Livre</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">
+                        {% if a.location %}{{ a.location.name }}{% else %}Estoque Central{% endif %}
+                    </td>
+                    <td class="small font-monospace fw-semibold text-nowrap" style="color:var(--c-text);">
+                        R$ {{ "{:,.2f}".format(a.purchase_value).replace(",", "v").replace(".", ",").replace("v", ".") }}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <a href="/assets/{{ a.id }}" class="btn btn-ghost btn-icon" title="Ver Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if can('movimentacao.criar') %}
+                            <a href="/movements/new?asset_id={{ a.id }}" class="btn btn-ghost btn-icon" title="Movimentar">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox empty-state-icon"></i>
+        <div class="empty-state-title">Nenhum equipamento encontrado</div>
+        <div class="empty-state-text">Tente ajustar os filtros ou cadastre um novo item.</div>
+        {% if can('patrimonio.criar') %}
+        <a href="/assets/new" class="btn btn-primary btn-sm">Cadastrar Novo Equipamento</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

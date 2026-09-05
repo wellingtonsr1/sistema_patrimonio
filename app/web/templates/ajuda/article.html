@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} | Ajuda | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-9">
+        <div class="page-header">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="badge badge-soft-gray">{{ article.module }}</span>
+                {% if article.audience == 'admin' %}
+                <span class="badge badge-soft-primary" style="font-size:.62rem;">ADMINISTRAÇÃO</span>
+                {% endif %}
+            </div>
+            <h3 class="page-header-title mt-2"><i class="bi {{ article.icon }} me-2" style="color:var(--c-primary-text);"></i>{{ article.title }}</h3>
+            <p class="page-header-subtitle">{{ article.summary }}</p>
+        </div>
+
+        <div class="card p-4">
+            {% for section in article.sections %}
+            <div class="{% if not loop.first %}mt-4{% endif %}">
+                {% if section.heading %}
+                <h5 class="fw-bold mb-2" style="font-size:.95rem;letter-spacing:-.01em;">{{ section.heading }}</h5>
+                {% endif %}
+                {% if section.body %}
+                {% for paragraph in section.body.split('\n\n') %}
+                <p class="mb-2 {% if section.heading %}text-secondary{% endif %}">{{ paragraph }}</p>
+                {% endfor %}
+                {% endif %}
+                {% if section.steps %}
+                <ol class="mb-2">
+                    {% for step in section.steps %}
+                    <li class="mb-1">{{ step }}</li>
+                    {% endfor %}
+                </ol>
+                {% endif %}
+                {% if section.note %}
+                <div class="alert alert-info d-flex align-items-start gap-2 py-2 small">
+                    <i class="bi bi-info-circle-fill mt-1"></i>
+                    <span>{{ section.note }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if related %}
+        <div class="card p-4 mt-3">
+            <h6 class="fw-bold mb-2" style="font-size:.9rem;">Artigos relacionados</h6>
+            <div class="d-flex flex-wrap gap-2">
+                {% for rel in related %}
+                <a href="/ajuda/{{ rel.id }}" class="btn btn-ghost btn-sm">
+                    <i class="bi {{ rel.icon }} me-1"></i>{{ rel.title }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <a href="/ajuda" class="btn btn-ghost">
+                <i class="bi bi-arrow-left me-1"></i> Voltar à Central de Ajuda
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

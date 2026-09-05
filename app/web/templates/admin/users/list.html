@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Usuários | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Usuários do Sistema</h3>
+        <p class="page-header-subtitle">Cadastro, perfis, status e acesso dos usuários.</p>
+    </div>
+    {% if can('usuarios.criar') %}
+    <a href="/admin/users/new" class="btn btn-primary">
+        <i class="bi bi-person-plus me-1"></i> Novo Usuário
+    </a>
+    {% endif %}
+</div>
+
+<!-- Search & Filter -->
+<div class="card p-3 mb-4">
+    <form method="get" action="/admin/users" class="row g-2 align-items-center">
+        <div class="col-12 col-lg-5">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Buscar por usuário, nome ou e-mail..." value="{{ search }}">
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+            <select name="status_filter" class="form-select">
+                <option value="">Status: Todos</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Ativos</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inativos</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-3 col-lg-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i> Filtrar</button>
+            {% if search or status_filter %}
+            <a href="/admin/users" class="btn btn-ghost" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header-clean">
+        <span class="text-muted small">Mostrando <strong>{{ users|length }}</strong> usuário(s)</span>
+    </div>
+
+    {% if users %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>E-mail</th>
+                    <th>Perfis</th>
+                    <th>Status</th>
+                    <th>Último Acesso</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="fw-semibold" style="color:var(--c-text);">
+                            <i class="bi bi-person-circle text-muted me-1"></i>{{ u.username }}
+                            {% if u.is_admin %}<span class="badge badge-soft-primary ms-1" style="font-size:.62rem;">ADMIN</span>{% endif %}
+                        </div>
+                        {% if u.full_name %}
+                        <div class="text-muted" style="font-size:.74rem;">{{ u.full_name }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted">{{ u.email or '-' }}</td>
+                    <td>
+                        {% if u.role_names %}
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for r in u.role_names %}
+                            <span class="badge badge-soft-gray" style="font-size:.66rem;">{{ r }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <span class="badge badge-soft-red" style="font-size:.66rem;">Sem perfil</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                        <span class="badge bg-success-subtle text-success">Ativo</span>
+                        {% else %}
+                        <span class="badge badge-soft-red">Bloqueado</span>
+                        {% endif %}
+                    </td>
+                    <td class="small text-muted text-nowrap">
+                        {{ u.last_login.strftime('%d/%m/%Y %H:%M') if u.last_login else 'Nunca' }}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        {% if can('usuarios.editar') %}
+                        <a href="/admin/users/{{ u.id }}/edit" class="btn btn-ghost btn-sm">
+                            <i class="bi bi-pencil me-1"></i> Editar
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-people empty-state-icon"></i>
+        <div class="empty-state-title">Nenhum usuário encontrado</div>
+        {% if can('usuarios.criar') %}
+        <a href="/admin/users/new" class="btn btn-primary btn-sm mt-2">Criar Primeiro Usuário</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

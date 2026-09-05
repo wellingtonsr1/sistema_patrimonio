@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Movimentação de Equipamento | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-9">
+        <div class="page-header">
+            <div>
+                <h3 class="page-header-title">Registrar Fluxo de Movimentação</h3>
+                <p class="page-header-subtitle">Transfira, aloque ou altere a custódia do equipamento com registro na trilha de auditoria.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/ajuda/movimentar-equipamento" class="btn btn-ghost">
+                    <i class="bi bi-question-circle me-1"></i> Como fazer uma movimentação?
+                </a>
+                <a href="/movements" class="btn btn-ghost">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar
+                </a>
+            </div>
+        </div>
+
+        <form method="post" action="/movements/new" class="card p-4">
+            <!-- 1. Asset Selection -->
+            <div class="form-section"><i class="bi bi-laptop"></i> 1. Selecione o Equipamento <span class="text-danger ms-1">*</span></div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">
+                    <i class="bi bi-laptop me-1"></i> Equipamento
+                    <span class="help-tip" data-bs-toggle="tooltip" data-bs-placement="top" title="Somente bens não baixados aparecem na lista."><i class="bi bi-question-circle"></i></span>
+                </label>
+                <select name="asset_id" class="form-select" required>
+                    <option value="">-- Selecione o Bem Patrimonial --</option>
+                    {% for a in assets %}
+                    <option value="{{ a.id }}" {% if selected_asset and selected_asset.id == a.id %}selected{% endif %}>
+                        [{{ a.tag }}] {{ a.name }} — {{ a.status.value }} ({{ a.custodian.name if a.custodian else 'Estoque' }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 2. Movement Type -->
+            <div class="form-section"><i class="bi bi-arrow-repeat"></i> 2. Tipo de Movimentação <span class="text-danger ms-1">*</span></div>
+            <div class="row g-2 mb-4">
+                <div class="col-12 col-md-6">
+                    <label class="d-block p-3 border rounded cursor-pointer" style="cursor:pointer;transition:all .15s;">
+                        <input class="form-check-input" type="radio" name="movement_type" id="type_alloc" value="ALOCACAO_CAUTELA" {% if prefill_type == 'ALOCACAO_CAUTELA' or not prefill_type %}checked{% endif %} required>
+                        <label class="fw-semibold ms-2" for="type_alloc" style="color:var(--c-text);">
+                            <i class="bi bi-person-check me-1" style="color:var(--blue);"></i> Alocação a Colaborador
+                        </label>
+                        <small class="text-muted d-block mt-1 ms-4" style="font-size:.78rem;">Entrega de equipamento a um funcionário.</small>
+                    </label>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="d-block p-3 border rounded" style="cursor:pointer;transition:all .15s;">
+                        <input class="form-check-input" type="radio" name="movement_type" id="type_transf" value="TRANSFERENCIA_LOCAL" {% if prefill_type == 'TRANSFERENCIA_LOCAL' %}checked{% endif %}>
+                        <label class="fw-semibold ms-2" for="type_transf" style="color:var(--c-text);">
+                            <i class="bi bi-building me-1" style="color:#0891b2;"></i> Transferência de Setor / Filial
+                        </label>
+                        <small class="text-muted d-block mt-1 ms-4" style="font-size:.78rem;">Mudança de sala, andar, filial ou departamento.</small>
+                    </label>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="d-block p-3 border rounded" style="cursor:pointer;transition:all .15s;">
+                        <input class="form-check-input" type="radio" name="movement_type" id="type_return" value="DEVOLUCAO_ESTOQUE" {% if prefill_type == 'DEVOLUCAO_ESTOQUE' %}checked{% endif %}>
+                        <label class="fw-semibold ms-2" for="type_return" style="color:var(--c-text);">
+                            <i class="bi bi-box-arrow-in-down me-1" style="color:var(--green);"></i> Devolução ao Estoque
+                        </label>
+                        <small class="text-muted d-block mt-1 ms-4" style="font-size:.78rem;">Devolução por desligamento ou troca de equipamento.</small>
+                    </label>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="d-block p-3 border rounded" style="cursor:pointer;transition:all .15s;">
+                        <input class="form-check-input" type="radio" name="movement_type" id="type_writeoff" value="BAIXA_DESCARTE" {% if prefill_type == 'BAIXA_DESCARTE' %}checked{% endif %}>
+                        <label class="fw-semibold ms-2" for="type_writeoff" style="color:var(--c-text);">
+                            <i class="bi bi-trash me-1" style="color:var(--red);"></i> Baixa / Descarte Definitivo
+                        </label>
+                        <small class="text-muted d-block mt-1 ms-4" style="font-size:.78rem;">Obsolescência, perda, quebra ou leilão.</small>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 3. Destination -->
+            <div class="form-section"><i class="bi bi-geo-alt-fill"></i> 3. Dados de Destino</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Novo Colaborador / Responsável</label>
+                    <select name="destination_custodian_id" class="form-select">
+                        <option value="">-- Selecione o Colaborador --</option>
+                        {% for c in custodians %}
+                        <option value="{{ c.id }}">{{ c.name }} ({{ c.registration_code }} - {{ c.department }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Novo Local / Departamento</label>
+                    <select name="destination_location_id" class="form-select">
+                        <option value="">-- Manter Local Atual --</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.id }}">{{ loc.name }} ({{ loc.branch }} - {{ loc.department }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Atualizar Estado de Conservação</label>
+                    <select name="new_condition" class="form-select">
+                        <option value="">-- Manter Estado Atual --</option>
+                        {% for cond in conditions %}
+                        <option value="{{ cond.value }}">{{ cond.value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Operador Responsável <span class="text-danger">*</span></label>
+                    <input type="text" name="operator_name" class="form-control" value="Operador do Patrimônio" required>
+                </div>
+            </div>
+
+            <!-- 4. Reason & Documentation -->
+            <div class="form-section"><i class="bi bi-card-text"></i> 4. Justificativa & Documentação</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <label class="form-label">Motivo / Justificativa <span class="text-danger">*</span></label>
+                    <input type="text" name="reason" class="form-control" placeholder="Ex: Admissão de novo analista, transferência de filial..." required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Observações Detalhadas</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Informações complementares para o termo ou histórico..."></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <a href="/movements" class="btn btn-ghost px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-check2-circle me-1"></i> Confirmar & Gravar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

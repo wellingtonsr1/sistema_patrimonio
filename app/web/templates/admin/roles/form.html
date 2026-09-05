@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}{% if role %}Editar {{ role.name }}{% else %}Novo Perfil{% endif %} | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-9">
+        <div class="page-header">
+            <div>
+                <h3 class="page-header-title">{% if role %}Editar Perfil: {{ role.name }}{% else %}Novo Perfil{% endif %}</h3>
+                <p class="page-header-subtitle">Selecione as permissões granulares do perfil. A validação é feita no backend — a interface apenas reflete as permissões.</p>
+            </div>
+            <a href="/admin/roles" class="btn btn-ghost">
+                <i class="bi bi-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 py-2 small" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+        {% if success %}
+        <div class="alert alert-success d-flex align-items-center gap-2 py-2 small" role="alert">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>{{ success }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% if role %}/admin/roles/{{ role.id }}/edit{% else %}/admin/roles/new{% endif %}" class="card p-4">
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Nome do Perfil <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" value="{{ role.name if role else '' }}" required>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Descrição</label>
+                    <input type="text" name="description" class="form-control" value="{{ role.description or '' if role else '' }}">
+                </div>
+            </div>
+
+            <div class="form-section mt-4"><i class="bi bi-list-check"></i> Permissões por Módulo</div>
+            {% for group in grouped_permissions %}
+            <div class="mb-4">
+                <div class="fw-bold small text-uppercase text-muted mb-2" style="letter-spacing:.05em;">{{ group.module }}</div>
+                <div class="row g-2">
+                    {% for perm in group.permissions %}
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <label class="d-block p-2 border rounded" style="cursor:pointer;">
+                            <input class="form-check-input" type="checkbox" name="permission_names" value="{{ perm.name }}" {% if perm.checked %}checked{% endif %}>
+                            <span class="ms-2 small fw-semibold" style="color:var(--c-text);">{{ perm.label }}</span>
+                            <code class="d-block ms-4 mt-1 text-muted" style="font-size:.66rem;">{{ perm.name }}</code>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <a href="/admin/roles" class="btn btn-ghost px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-check2-circle me-1"></i> Salvar Perfil
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

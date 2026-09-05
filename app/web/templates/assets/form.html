@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Tombamento de Equipamento | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <div class="page-header">
+            <div>
+                <h3 class="page-header-title">Novo Tombamento de Patrimônio</h3>
+                <p class="page-header-subtitle">Cadastre um novo bem no sistema. O evento de entrada será gravado no fluxo automaticamente.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/ajuda/cadastrar-equipamento" class="btn btn-ghost">
+                    <i class="bi bi-question-circle me-1"></i> Como faço isso?
+                </a>
+                <a href="/assets" class="btn btn-ghost">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar à Lista
+                </a>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/assets/new" class="card p-4">
+            <div class="form-section"><i class="bi bi-tag"></i> 1. Identificação Principal</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Nº de Tombamento / Tag <span class="text-danger">*</span>
+                        <span class="help-tip" data-bs-toggle="tooltip" data-bs-placement="top" title="Código único de identificação patrimonial utilizado pelo órgão para controlar o bem. Ex.: PAT-00125."><i class="bi bi-question-circle"></i></span>
+                    </label>
+                    <input type="text" name="tag" class="form-control text-uppercase font-monospace fw-bold" placeholder="Ex: PAT-00125" required>
+                    <div class="form-text">Código único de identificação patrimonial.</div>
+                </div>
+                <div class="col-12 col-md-5">
+                    <label class="form-label">Nome / Descrição do Bem <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" placeholder="Ex: Notebook Dell Latitude 5440 i7 16GB" required>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Categoria <span class="text-danger">*</span></label>
+                    <select name="category" class="form-select" required>
+                        {% for cat in categories %}
+                        <option value="{{ cat.value }}">{{ cat.value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Marca / Fabricante</label>
+                    <input type="text" name="brand" class="form-control" placeholder="Dell, Lenovo, HP, Apple...">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Modelo</label>
+                    <input type="text" name="model" class="form-control" placeholder="ThinkPad E14 Gen 4">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Número de Série (S/N)
+                        <span class="help-tip" data-bs-toggle="tooltip" data-bs-placement="top" title="Identificação fornecida pelo fabricante do equipamento. Ajuda a rastrear garantia e procedência."><i class="bi bi-question-circle"></i></span>
+                    </label>
+                    <input type="text" name="serial_number" class="form-control font-monospace" placeholder="8XF99120KL">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Especificações Técnicas Detalhadas</label>
+                    <textarea name="specifications" class="form-control" rows="2" placeholder="Processador, Memória RAM, SSD, Acessórios inclusos..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-section"><i class="bi bi-receipt"></i> 2. Informações Fiscais & Aquisição</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Data de Compra</label>
+                    <input type="date" name="purchase_date" class="form-control">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Valor de Aquisição (R$)</label>
+                    <input type="number" step="0.01" name="purchase_value" class="form-control" placeholder="0.00" value="0.00">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Nº da Nota Fiscal (NF)</label>
+                    <input type="text" name="invoice_number" class="form-control" placeholder="NF-e 452109">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Fornecedor / Loja</label>
+                    <input type="text" name="supplier" class="form-control" placeholder="Dell Computadores do Brasil">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Validade da Garantia</label>
+                    <input type="date" name="warranty_expiry" class="form-control">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Estado de Conservação Inicial</label>
+                    <select name="condition" class="form-select">
+                        {% for cond in conditions %}
+                        <option value="{{ cond.value }}" {% if cond.value == 'NOVO' %}selected{% endif %}>{{ cond.value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-section"><i class="bi bi-geo-alt"></i> 3. Alocação Inicial no Fluxo</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Localização / Setor Inicial</label>
+                    <select name="location_id" class="form-select">
+                        <option value="">-- Estoque Central / Almoxarifado --</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.id }}">{{ loc.name }} ({{ loc.branch }} - {{ loc.department }})</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Deixe em branco para armazenar no estoque geral.</div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Colaborador / Custodiante Inicial (Cautela)</label>
+                    <select name="custodian_id" class="form-select">
+                        <option value="">-- Sem Colaborador (Disponível em Estoque) --</option>
+                        {% for cust in custodians %}
+                        <option value="{{ cust.id }}">{{ cust.name }} ({{ cust.registration_code }} - {{ cust.department }})</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Se selecionado, o equipamento já nascerá com status "EM USO".</div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Operador Responsável pelo Registro</label>
+                    <input type="text" name="operator_name" class="form-control" value="Administrador" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Observações Gerais</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Observações de entrada, termos específicos, etc."></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <a href="/assets" class="btn btn-ghost px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-check-lg me-1"></i> Concluir Tombamento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

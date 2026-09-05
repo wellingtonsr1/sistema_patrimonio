@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Editar {{ user.username }} | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">
+            <i class="bi bi-person-gear me-1"></i> {{ user.username }}
+            {% if user.is_admin %}<span class="badge badge-soft-primary ms-1" style="font-size:.65rem;">ADMIN</span>{% endif %}
+        </h3>
+        <p class="page-header-subtitle">
+            {% if user.full_name %}{{ user.full_name }} • {% endif %}
+            Último acesso: {{ user.last_login.strftime('%d/%m/%Y %H:%M') if user.last_login else 'Nunca' }}
+        </p>
+    </div>
+    <a href="/admin/users" class="btn btn-ghost">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+    </a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger d-flex align-items-center gap-2 py-2 small" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+{% if success %}
+<div class="alert alert-success d-flex align-items-center gap-2 py-2 small" role="alert">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ success }}</span>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-12 col-lg-7">
+        <!-- Dados cadastrais + perfis -->
+        <form method="post" action="/admin/users/{{ user.id }}/edit" class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-person-badge"></i> Dados do Usuário</div>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Nome Completo</label>
+                    <input type="text" name="full_name" class="form-control" value="{{ user.full_name or '' }}">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">E-mail</label>
+                    <input type="email" name="email" class="form-control" value="{{ user.email or '' }}">
+                </div>
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if user.is_active %}checked{% endif %} value="true">
+                        <label class="form-check-label fw-semibold" for="is_active">Conta ativa</label>
+                        <div class="form-text">Desmarcar bloqueia o acesso imediatamente (sessões invalidadas).</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section mt-4"><i class="bi bi-shield-lock"></i> Perfis de Acesso</div>
+            <div class="row g-2">
+                {% for r in roles %}
+                <div class="col-12 col-md-6">
+                    <label class="d-block p-3 border rounded" style="cursor:pointer;">
+                        <input class="form-check-input" type="checkbox" name="role_ids" value="{{ r.id }}" {% if r.id in user_role_ids %}checked{% endif %}>
+                        <span class="fw-semibold ms-2" style="color:var(--c-text);">{{ r.name }}</span>
+                        {% if r.description %}
+                        <small class="text-muted d-block mt-1 ms-4" style="font-size:.76rem;">{{ r.description }}</small>
+                        {% endif %}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
+                <a href="/admin/users" class="btn btn-ghost px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-check2-circle me-1"></i> Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-12 col-lg-5">
+        <!-- Status & Ações -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-activity"></i> Situação da Conta</div>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                {% if user.is_active %}
+                <span class="badge bg-success-subtle text-success fs-6">ATIVO</span>
+                {% else %}
+                <span class="badge badge-soft-red fs-6">BLOQUEADO</span>
+                {% endif %}
+                {% if user.locked_until and user.locked_until > now %}
+                <span class="badge badge-soft-red">Bloqueio temporário até {{ user.locked_until.strftime('%d/%m/%Y %H:%M') }}</span>
+                {% endif %}
+            </div>
+            {% if can('usuarios.bloquear') %}
+            {% if user.is_active %}
+            <form method="post" action="/admin/users/{{ user.id }}/toggle-active" class="mb-2">
+                <input type="hidden" name="action" value="block">
+                <button type="submit" class="btn btn-outline-danger w-100"
+                        onclick="return confirm('Bloquear o acesso deste usuário? As sessões ativas serão invalidadas.')">
+                    <i class="bi bi-person-dash me-1"></i> Bloquear Usuário
+                </button>
+            </form>
+            {% else %}
+            <form method="post" action="/admin/users/{{ user.id }}/toggle-active" class="mb-2">
+                <input type="hidden" name="action" value="unblock">
+                <button type="submit" class="btn btn-outline-success w-100">
+                    <i class="bi bi-person-check me-1"></i> Desbloquear Usuário
+                </button>
+            </form>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        {% if can('usuarios.editar') %}
+        <div class="card p-4">
+            <div class="section-divider mb-3"><i class="bi bi-key"></i> Redefinir Senha</div>
+            <form method="post" action="/admin/users/{{ user.id }}/reset-password">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nova Senha</label>
+                    <input type="password" name="new_password" class="form-control" required autocomplete="new-password" minlength="8">
+                    <div class="form-text">Mínimo de 8 caracteres. As sessões existentes serão invalidadas.</div>
+                </div>
+                <button type="submit" class="btn btn-warning w-100"
+                        onclick="return confirm('Redefinir a senha deste usuário? Ele precisará efetuar novo login.')">
+                    <i class="bi bi-arrow-repeat me-1"></i> Redefinir Senha
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

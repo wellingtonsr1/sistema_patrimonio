@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Ordem de Manutenção | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8">
+        <div class="page-header">
+            <div>
+                <h3 class="page-header-title">Abrir Ordem de Serviço</h3>
+                <p class="page-header-subtitle">Envio de equipamento para reparo com alteração automática de status no fluxo.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/ajuda/abrir-ordem-servico" class="btn btn-ghost">
+                    <i class="bi bi-question-circle me-1"></i> Como abrir uma OS?
+                </a>
+                <a href="/maintenances" class="btn btn-ghost">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar
+                </a>
+            </div>
+        </div>
+
+        <form method="post" action="/maintenances/new" class="card p-4">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Equipamento <span class="text-danger">*</span>
+                    <span class="help-tip" data-bs-toggle="tooltip" data-bs-placement="top" title="Somente bens não baixados podem receber ordem de serviço."><i class="bi bi-question-circle"></i></span>
+                </label>
+                <select name="asset_id" class="form-select" required>
+                    <option value="">-- Selecione o Equipamento --</option>
+                    {% for a in assets %}
+                    <option value="{{ a.id }}" {% if selected_asset and selected_asset.id == a.id %}selected{% endif %}>
+                        [{{ a.tag }}] {{ a.name }} ({{ a.status.value }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Tipo de Manutenção <span class="text-danger">*</span></label>
+                    <select name="maintenance_type" class="form-select" required>
+                        {% for mt in maintenance_types %}
+                        <option value="{{ mt.value }}">{{ mt.value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Assistência / Técnico</label>
+                    <input type="text" name="provider_name" class="form-control" placeholder="Ex: Assistência Autorizada Dell">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Descrição do Defeito <span class="text-danger">*</span></label>
+                <textarea name="description" class="form-control" rows="3" placeholder="Descreva o problema constatado no equipamento..." required></textarea>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Custo Estimado (R$)</label>
+                    <input type="number" step="0.01" name="cost" class="form-control" value="0.00">
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Operador Responsável <span class="text-danger">*</span></label>
+                    <input type="text" name="operator_name" class="form-control" value="Técnico de Suporte" required>
+                </div>
+            </div>
+
+            <div class="alert alert-warning small">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i> Ao salvar, o equipamento passará automaticamente para <strong>EM MANUTENÇÃO</strong> e a saída será registrada no fluxo.
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
+                <a href="/maintenances" class="btn btn-ghost px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-wrench me-1"></i> Abrir OS
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

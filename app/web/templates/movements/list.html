@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico de Movimentações | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Fluxo Global de Movimentações</h3>
+        <p class="page-header-subtitle">Registro histórico auditável de todas as transferências, alocações e alterações de custódia.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can('relatorios.exportar') %}
+        <a href="/reports/movements" class="btn btn-ghost">
+            <i class="bi bi-file-earmark-excel me-1"></i> Exportar CSV
+        </a>
+        {% endif %}
+        {% if can('movimentacao.criar') %}
+        <a href="/movements/new" class="btn btn-primary">
+            <i class="bi bi-arrow-repeat me-1"></i> Nova Movimentação
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card p-3 mb-4">
+    <form method="get" action="/movements" class="row g-3">
+        <div class="col-12 col-md-6">
+            <label class="form-label small fw-semibold">Tipo de Movimentação</label>
+            <select name="movement_type" class="form-select">
+                <option value="">Todos os Tipos</option>
+                {% for mt in movement_types %}
+                <option value="{{ mt.value }}" {% if selected_type == mt.value %}selected{% endif %}>{{ mt.value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-6 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i> Filtrar</button>
+            <a href="/movements" class="btn btn-ghost">Limpar</a>
+        </div>
+    </form>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-header-clean">
+        <span class="text-muted small">Mostrando <strong>{{ movements|length }}</strong> registros de fluxo</span>
+    </div>
+
+    {% if movements %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Data / Hora</th>
+                    <th>Tombamento</th>
+                    <th>Equipamento</th>
+                    <th>Tipo</th>
+                    <th>Origem</th>
+                    <th>Destino</th>
+                    <th>Motivo</th>
+                    <th>Operador</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movements %}
+                <tr>
+                    <td class="small text-muted text-nowrap">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>
+                        <a href="/assets/{{ m.asset_id }}" class="tag-badge text-decoration-none">{{ m.asset.tag }}</a>
+                    </td>
+                    <td>
+                        <a href="/assets/{{ m.asset_id }}" class="text-decoration-none" style="color:var(--c-text);font-weight:600;">
+                            {{ m.asset.name }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="badge badge-soft-primary font-monospace" style="font-size:.68rem;">{{ m.movement_type.value }}</span>
+                    </td>
+                    <td class="small">
+                        <div><i class="bi bi-geo-alt text-muted me-1"></i>{{ m.origin_location_name or '-' }}</div>
+                        <div class="text-muted"><i class="bi bi-person me-1"></i>{{ m.origin_custodian_name or '-' }}</div>
+                    </td>
+                    <td class="small">
+                        <div class="fw-semibold" style="color:var(--c-primary-text);"><i class="bi bi-geo-alt-fill me-1"></i>{{ m.destination_location_name or '-' }}</div>
+                        <div style="color:var(--c-primary-text);"><i class="bi bi-person-fill me-1"></i>{{ m.destination_custodian_name or '-' }}</div>
+                    </td>
+                    <td class="small truncate-2" style="max-width:220px;">{{ m.reason }}</td>
+                    <td class="small text-muted">{{ m.operator_name }}</td>
+                    <td class="text-end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            {% if m.term_code %}
+                            <a href="/movements/{{ m.id }}/term" class="btn btn-ghost btn-icon" title="Imprimir Termo" target="_blank">
+                                <i class="bi bi-printer"></i>
+                            </a>
+                            {% endif %}
+                            <a href="/assets/{{ m.asset_id }}" class="btn btn-ghost btn-icon" title="Ver Bem">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-clock-history empty-state-icon"></i>
+        <div class="empty-state-title">Nenhuma movimentação encontrada</div>
+        <div class="empty-state-text">Ajuste os filtros ou registre uma nova movimentação.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

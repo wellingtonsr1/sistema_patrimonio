@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // Aplica o tema antes da renderização (evita flash e mantém Bootstrap sincronizado)
+        (function () {
+            try {
+                var t = localStorage.getItem('sispatrim-theme');
+                if (!t) { t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.setAttribute('data-bs-theme', t);
+            } catch (e) {}
+        })();
+    </script>
+    <title>{% block title %}SisPatrimônio Pro{% endblock %}</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css?v=20260905">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- QRCode.js -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <!-- ===== Mobile Sidebar ===== -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <aside class="mobile-sidebar" id="mobileSidebar" style="display:none;">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="navbar-brand-icon" style="width:28px;height:28px;font-size:.85rem;">
+                    <i class="bi bi-box-seam"></i>
+                </span>
+                SisPatrimônio
+            </div>
+            <button class="sidebar-close" onclick="closeSidebar()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="sidebar-nav-item {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+            {% if can('patrimonio.visualizar') %}
+            <a class="sidebar-nav-item {% if active_tab == 'assets' %}active{% endif %}" href="/assets">
+                <i class="bi bi-laptop"></i> Equipamentos
+            </a>
+            {% endif %}
+            {% if can('movimentacao.visualizar') %}
+            <a class="sidebar-nav-item {% if active_tab == 'movements' %}active{% endif %}" href="/movements">
+                <i class="bi bi-arrow-left-right"></i> Fluxo & Movimentação
+            </a>
+            {% endif %}
+            {% if can('colaboradores.visualizar') %}
+            <a class="sidebar-nav-item {% if active_tab == 'custodians' %}active{% endif %}" href="/custodians">
+                <i class="bi bi-people"></i> Colaboradores
+            </a>
+            {% endif %}
+            {% if can('locais.visualizar') %}
+            <a class="sidebar-nav-item {% if active_tab == 'locations' %}active{% endif %}" href="/locations">
+                <i class="bi bi-geo-alt"></i> Locais
+            </a>
+            {% endif %}
+            {% if can('manutencao.visualizar') %}
+            <a class="sidebar-nav-item {% if active_tab == 'maintenances' %}active{% endif %}" href="/maintenances">
+                <i class="bi bi-wrench"></i> Manutenções
+            </a>
+            {% endif %}
+            {% if can('relatorios.visualizar') %}
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">Relatórios</div>
+            <a class="sidebar-nav-item {% if active_tab == 'reports' %}active{% endif %}" href="/reports/inventory">
+                <i class="bi bi-table"></i> Inventário Geral
+            </a>
+            <a class="sidebar-nav-item" href="/reports/movements">
+                <i class="bi bi-clock-history"></i> Trilha de Auditoria
+            </a>
+            <a class="sidebar-nav-item" href="/reports/custodians">
+                <i class="bi bi-people"></i> Relação de Colaboradores
+            </a>
+            {% endif %}
+            {% if can('usuarios.visualizar') or can('perfis.visualizar') or can('auditoria.visualizar') %}
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">Administração</div>
+            {% if can('usuarios.visualizar') %}
+            <a class="sidebar-nav-item {% if active_tab == 'admin' %}active{% endif %}" href="/admin/users">
+                <i class="bi bi-person-gear"></i> Usuários
+            </a>
+            {% endif %}
+            {% if can('perfis.visualizar') %}
+            <a class="sidebar-nav-item" href="/admin/roles">
+                <i class="bi bi-shield-lock"></i> Perfis & Permissões
+            </a>
+            {% endif %}
+            {% if can('auditoria.visualizar') %}
+            <a class="sidebar-nav-item" href="/admin/audit">
+                <i class="bi bi-journal-check"></i> Auditoria
+            </a>
+            {% endif %}
+            {% endif %}
+            <div class="sidebar-divider"></div>
+            <a class="sidebar-nav-item" href="/ajuda">
+                <i class="bi bi-question-circle"></i> Ajuda e Manual
+            </a>
+            <a class="sidebar-nav-item" href="/docs" target="_blank">
+                <i class="bi bi-code-slash"></i> API Swagger
+            </a>
+        </nav>
+        <div class="sidebar-actions">
+            {% if can('movimentacao.criar') %}
+            <a href="/movements/new" class="btn btn-ghost btn-sm" style="color:#94a3b8;border-color:rgba(255,255,255,.12);">
+                <i class="bi bi-arrow-repeat"></i> Movimentar
+            </a>
+            {% endif %}
+            {% if can('patrimonio.criar') %}
+            <a href="/assets/new" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> Novo Bem
+            </a>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- ===== Top Navbar ===== -->
+    <nav class="navbar navbar-expand-xl app-navbar sticky-top no-print">
+        <div class="container-fluid px-lg-4">
+            <!-- Hamburger (mobile) -->
+            <button class="sidebar-hamburger me-2" onclick="openSidebar()" aria-label="Abrir menu">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <span class="navbar-brand-icon">
+                    <i class="bi bi-box-seam"></i>
+                </span>
+                <span>SisPatrimônio <span class="badge bg-indigo-subtle text-primary border border-primary-subtle fw-normal" style="font-size:.65rem;">PRO</span></span>
+            </a>
+
+            <!-- Desktop nav collapse -->
+            <div class="collapse navbar-collapse ms-lg-3" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
+                            <i class="bi bi-grid-1x2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    {% if can('patrimonio.visualizar') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'assets' %}active{% endif %}" href="/assets">
+                            <i class="bi bi-laptop me-1"></i> Equipamentos
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if can('movimentacao.visualizar') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'movements' %}active{% endif %}" href="/movements">
+                            <i class="bi bi-arrow-left-right me-1"></i> Fluxo & Movimentação
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if can('colaboradores.visualizar') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'custodians' %}active{% endif %}" href="/custodians">
+                            <i class="bi bi-people me-1"></i> Colaboradores
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if can('locais.visualizar') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'locations' %}active{% endif %}" href="/locations">
+                            <i class="bi bi-geo-alt me-1"></i> Locais
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if can('manutencao.visualizar') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'maintenances' %}active{% endif %}" href="/maintenances">
+                            <i class="bi bi-wrench me-1"></i> Manutenções
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if can('relatorios.visualizar') %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if active_tab == 'reports' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-file-earmark-text me-1"></i> Relatórios
+                        </a>
+                        <ul class="dropdown-menu shadow-sm border-0 mt-2">
+                            <li><a class="dropdown-item py-2" href="/reports/inventory"><i class="bi bi-table text-primary me-2"></i>Inventário Geral</a></li>
+                            <li><a class="dropdown-item py-2" href="/reports/movements"><i class="bi bi-clock-history me-2" style="color:var(--indigo);"></i>Trilha de Auditoria</a></li>
+                            <li><a class="dropdown-item py-2" href="/reports/custodians"><i class="bi bi-people me-2" style="color:var(--green);"></i>Relação de Colaboradores</a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li><a class="dropdown-item py-2" href="/docs" target="_blank"><i class="bi bi-code-slash text-secondary me-2"></i>API Swagger</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                    {% if can('usuarios.visualizar') or can('perfis.visualizar') or can('auditoria.visualizar') %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if active_tab == 'admin' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear me-1"></i> Administração
+                        </a>
+                        <ul class="dropdown-menu shadow-sm border-0 mt-2">
+                            {% if can('usuarios.visualizar') %}
+                            <li><a class="dropdown-item py-2" href="/admin/users"><i class="bi bi-person-gear text-primary me-2"></i>Usuários</a></li>
+                            {% endif %}
+                            {% if can('perfis.visualizar') %}
+                            <li><a class="dropdown-item py-2" href="/admin/roles"><i class="bi bi-shield-lock me-2" style="color:var(--indigo);"></i>Perfis & Permissões</a></li>
+                            {% endif %}
+                            {% if can('auditoria.visualizar') %}
+                            <li><a class="dropdown-item py-2" href="/admin/audit"><i class="bi bi-journal-check me-2" style="color:var(--green);"></i>Auditoria</a></li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+                    <a href="/ajuda" class="btn btn-ghost btn-sm text-nowrap" title="Ajuda e Manual" data-bs-toggle="tooltip" data-bs-placement="bottom" aria-label="Ajuda e Manual">
+                        <i class="bi bi-question-circle"></i>
+                        <span class="d-none d-lg-inline ms-1">Ajuda</span>
+                    </a>
+                    {% if can('movimentacao.criar') %}
+                    <a href="/movements/new" class="btn btn-ghost btn-sm text-nowrap" style="color:#cbd5e1;border-color:rgba(255,255,255,.15);">
+                        <i class="bi bi-arrow-repeat"></i> Movimentar
+                    </a>
+                    {% endif %}
+                    {% if can('patrimonio.criar') %}
+                    <a href="/assets/new" class="btn btn-primary btn-sm text-nowrap">
+                        <i class="bi bi-plus-lg"></i> Novo Bem
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if current_user %}
+            <!-- User menu -->
+            <div class="dropdown ms-2">
+                <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:#cbd5e1;border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle"></i>
+                    <span class="d-none d-md-inline">{{ current_user.username }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                    <li><span class="dropdown-item-text small text-muted">
+                        {% if current_user.full_name %}{{ current_user.full_name }}<br>{% endif %}
+                        <strong>{{ current_user.username }}</strong>
+                        {% if current_user.is_admin %}<span class="badge badge-soft-primary ms-1" style="font-size:.65rem;">ADMIN</span>{% endif %}
+                        {% if user_roles %}
+                        <div class="mt-1">
+                            {% for r in user_roles %}
+                            <span class="badge badge-soft-gray me-1" style="font-size:.65rem;">{{ r }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </span></li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                        <a class="dropdown-item py-2" href="/profile/password">
+                            <i class="bi bi-key me-2"></i>Alterar senha
+                        </a>
+                    </li>
+                    <li>
+                        <form method="post" action="/logout">
+                            <button type="submit" class="dropdown-item py-2 text-danger">
+                                <i class="bi bi-box-arrow-right me-2"></i>Sair
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Dark mode toggle (always visible) -->
+            <button class="dark-toggle ms-2" id="darkToggle" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Alternar tema">
+                <i class="bi bi-moon-stars" id="darkIcon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container-fluid py-4 px-lg-5" style="max-width:1440px;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-muted border-top bg-white mt-5 no-print" style="background:var(--c-surface);">
+        <div class="small">
+            <span class="fw-semibold" style="color:var(--c-text);">{{ app_name }}</span> v{{ app_version }} &bull; {{ company_name }} &copy; {{ current_year }}
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <!-- Inicializa tooltips (ajuda contextual: data-bs-toggle="tooltip") -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+                new bootstrap.Tooltip(el);
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

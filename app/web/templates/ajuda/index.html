@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Ajuda e Manual | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title"><i class="bi bi-question-circle me-2" style="color:var(--c-primary-text);"></i>Ajuda e Manual do SisPatrimônio Pro</h3>
+        <p class="page-header-subtitle">Como podemos ajudar? Encontre orientações, passos a passo e respostas para as dúvidas mais comuns.</p>
+    </div>
+</div>
+
+<!-- Search -->
+<div class="card p-3 mb-4">
+    <div class="input-group input-group-lg">
+        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+        <input type="text" id="helpSearch" class="form-control border-start-0 help-search" placeholder="Pesquisar no manual... (ex: impressora, movimentação, responsável, manutenção)" autocomplete="off">
+    </div>
+    <div class="text-muted small mt-2" id="helpCount"></div>
+</div>
+
+<!-- Search Results (shown while searching) -->
+<div id="helpResults" class="d-none"></div>
+
+<!-- Category Cards -->
+<div id="helpBrowse">
+    <div class="row g-3 mb-2">
+        {% for cat in categories %}
+        {% if cat.audience != 'admin' or has_admin_perms %}
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100 p-3 help-card">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="kpi-icon-wrap" style="background:var(--c-primary-50);color:var(--indigo);flex-shrink:0;">
+                        <i class="bi {{ cat.icon }}"></i>
+                    </div>
+                    <div class="w-100">
+                        <h5 class="fw-bold mb-1" style="font-size:.95rem;">{{ cat.title }}</h5>
+                        <p class="text-muted small mb-2">{{ cat.description }}</p>
+                        <ul class="list-unstyled small mb-0">
+                            {% for article in cat.articles %}
+                            {% if article.audience != 'admin' or has_admin_perms %}
+                            <li class="mb-1">
+                                <a href="/ajuda/{{ article.id }}" class="text-decoration-none">
+                                    <i class="bi bi-chevron-right me-1" style="font-size:.7rem;"></i>{{ article.title }}
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- Todos os artigos -->
+    <div class="card mt-3 mb-4">
+        <div class="card-header-clean">
+            <span class="fw-bold" style="font-size:.9rem;">Todos os artigos</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Artigo</th>
+                        <th>Módulo</th>
+                        <th>Resumo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for article in articles %}
+                    {% if article.audience != 'admin' or has_admin_perms %}
+                    <tr>
+                        <td class="text-nowrap">
+                            <a href="/ajuda/{{ article.id }}" class="fw-semibold text-decoration-none" style="color:var(--c-text);">
+                                <i class="bi {{ article.icon }} me-1 text-muted"></i>{{ article.title }}
+                            </a>
+                        </td>
+                        <td><span class="badge badge-soft-gray">{{ article.module }}</span></td>
+                        <td class="small text-muted">{{ article.summary }}</td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="card">
+        <div class="card-header-clean">
+            <span class="fw-bold" style="font-size:.9rem;"><i class="bi bi-question-circle me-1" style="color:var(--c-primary-text);"></i>Perguntas frequentes</span>
+        </div>
+        <div class="card-body">
+            <div class="accordion" id="helpFaq">
+                {% for item in faq %}
+                <div class="accordion-item faq-item" id="faq-{{ loop.index0 }}">
+                    <h2 class="accordion-header" id="faqHead{{ loop.index0 }}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqBody{{ loop.index0 }}" aria-expanded="false" aria-controls="faqBody{{ loop.index0 }}">
+                            {{ item.question }}
+                        </button>
+                    </h2>
+                    <div id="faqBody{{ loop.index0 }}" class="accordion-collapse collapse" aria-labelledby="faqHead{{ loop.index0 }}" data-bs-parent="#helpFaq">
+                        <div class="accordion-body small">{{ item.answer }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Busca simples no manual: filtra artigos e FAQ pelo texto completo.
+    const HELP_INDEX = {{ search_index | safe }};
+    const helpSearch = document.getElementById('helpSearch');
+    const helpResults = document.getElementById('helpResults');
+    const helpBrowse = document.getElementById('helpBrowse');
+    const helpCount = document.getElementById('helpCount');
+
+    function normalize(text) {
+        return (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    helpSearch.addEventListener('input', function () {
+        const query = normalize(helpSearch.value.trim());
+        if (query.length < 2) {
+            helpBrowse.classList.remove('d-none');
+            helpResults.classList.add('d-none');
+            helpResults.innerHTML = '';
+            helpCount.textContent = '';
+            return;
+        }
+
+        const matches = HELP_INDEX.filter(item => normalize(item.text).includes(query));
+        helpBrowse.classList.add('d-none');
+        helpResults.classList.remove('d-none');
+        helpCount.textContent = matches.length
+            ? matches.length + ' resultado(s) para "' + helpSearch.value.trim() + '"'
+            : 'Nenhum resultado para "' + helpSearch.value.trim() + '". Tente outros termos.';
+
+        if (!matches.length) {
+            helpResults.innerHTML =
+                '<div class="empty-state"><i class="bi bi-search empty-state-icon"></i>' +
+                '<div class="empty-state-title">Nenhum resultado encontrado</div>' +
+                '<div class="empty-state-text">Verifique a grafia ou tente termos como "movimentação", "manutenção" ou "relatório".</div></div>';
+            return;
+        }
+
+        helpResults.innerHTML = matches.map(item => {
+            const href = item.type === 'faq' ? '#faq-' + item.id.split('-')[1] : '/ajuda/' + item.id;
+            const icon = item.type === 'faq' ? 'bi-question-circle' : 'bi-file-earmark-text';
+            return (
+                '<div class="card p-3 mb-2 help-card">' +
+                '<a href="' + href + '" class="text-decoration-none fw-semibold" style="color:var(--c-text);">' +
+                '<i class="bi ' + icon + ' me-2" style="color:var(--c-primary-text);"></i>' + item.title + '</a>' +
+                '<div class="small text-muted mt-1">' + item.summary + '</div>' +
+                '<div class="mt-1"><span class="badge badge-soft-gray" style="font-size:.66rem;">' + item.module + '</span></div>' +
+                '</div>'
+            );
+        }).join('');
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório de Inventário Patrimonial | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header no-print">
+    <div>
+        <h3 class="page-header-title">Inventário Geral do Patrimônio</h3>
+        <p class="page-header-subtitle">Listagem analítica de bens com cálculo de depreciação linear contábil.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can('relatorios.exportar') %}
+        <a href="/api/v1/reports/inventory/csv" class="btn btn-success" download>
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Baixar CSV
+        </a>
+        {% endif %}
+        <button onclick="window.print()" class="btn btn-ghost">
+            <i class="bi bi-printer me-1"></i> Imprimir
+        </button>
+    </div>
+</div>
+
+<div class="card p-4">
+    <div class="border-bottom pb-3 mb-3 text-center">
+        <h4 class="fw-bold mb-0 text-uppercase" style="font-size:1.1rem;">{{ company_name }}</h4>
+        <div class="small text-muted">Relatório de Inventário Físico e Contábil • {{ current_year }}</div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle small mb-0">
+            <thead>
+                <tr>
+                    <th>Tombamento</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Status</th>
+                    <th>Localização</th>
+                    <th>Responsável</th>
+                    <th>Data Compra</th>
+                    <th>Valor Aquisição</th>
+                    <th>Depreciação</th>
+                    <th>Valor Atual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assets %}
+                <tr>
+                    <td class="font-monospace fw-bold">{{ a.tag }}</td>
+                    <td>
+                        <strong>{{ a.name }}</strong>
+                        {% if a.serial_number %}<div class="text-muted" style="font-size:.72rem;">S/N: {{ a.serial_number }}</div>{% endif %}
+                    </td>
+                    <td><span class="badge badge-soft-gray" style="font-size:.68rem;">{{ a.category.value }}</span></td>
+                    <td><span class="status-pill status-pill-{{ a.status.value }}">{{ a.status.value }}</span></td>
+                    <td class="small">{{ a.location.name if a.location else 'Estoque Geral' }}</td>
+                    <td class="small">{{ a.custodian.name if a.custodian else 'Livre' }}</td>
+                    <td class="small">{{ a.purchase_date.strftime('%d/%m/%Y') if a.purchase_date else '-' }}</td>
+                    <td class="text-end small">R$ {{ "{:,.2f}".format(a.purchase_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</td>
+                    <td class="text-end small" style="color:var(--red);">-{{ a.deprec_info.depreciation_percent }}%</td>
+                    <td class="text-end small fw-bold" style="color:var(--green);">R$ {{ "{:,.2f}".format(a.deprec_info.current_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

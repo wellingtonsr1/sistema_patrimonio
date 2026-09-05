@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block title %}Importar CSV | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">
+            <i class="bi bi-filetype-csv text-primary me-2"></i>Importar Colaboradores via CSV
+        </h3>
+        <p class="page-header-subtitle">Importe múltiplos colaboradores de uma vez usando um arquivo CSV.</p>
+    </div>
+    <div>
+        <a href="/custodians" class="btn btn-ghost">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+</div>
+
+{% if error %}
+<!-- Error -->
+<div class="card border-danger mb-4">
+    <div class="card-body">
+        <h5 class="text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</h5>
+        {% if parse_errors %}
+        <ul class="mt-2 mb-0 small">
+            {% for e in parse_errors %}
+            <li class="text-danger">{{ e }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if show_result %}
+<!-- Result -->
+<div class="card mb-4">
+    <div class="card-body text-center py-5">
+        {% if result.errors %}
+        <i class="bi bi-exclamation-circle text-warning" style="font-size:3rem;"></i>
+        <h4 class="mt-3">Importação Concluída com Avisos</h4>
+        {% else %}
+        <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
+        <h4 class="mt-3">Importação Concluída com Sucesso!</h4>
+        {% endif %}
+
+        <div class="row mt-4 justify-content-center">
+            <div class="col-auto">
+                <div class="border rounded px-4 py-3 text-center">
+                    <div class="fs-2 fw-bold text-success">{{ result.imported }}</div>
+                    <div class="text-muted small">Importados</div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="border rounded px-4 py-3 text-center">
+                    <div class="fs-2 fw-bold text-secondary">{{ result.skipped }}</div>
+                    <div class="text-muted small">Ignorados (duplicatas)</div>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="border rounded px-4 py-3 text-center">
+                    <div class="fs-2 fw-bold text-danger">{{ result.errors|length }}</div>
+                    <div class="text-muted small">Erros</div>
+                </div>
+            </div>
+        </div>
+
+        {% if result.errors %}
+        <div class="mt-4 text-start">
+            <h6 class="text-danger">Erros encontrados:</h6>
+            <ul class="small">
+                {% for e in result.errors %}
+                <li>{{ e }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="mt-4">
+            <a href="/custodians" class="btn btn-primary me-2">
+                <i class="bi bi-list-ul me-1"></i>Ver Colaboradores
+            </a>
+            <a href="/custodians/import" class="btn btn-ghost">
+                <i class="bi bi-upload me-1"></i>Nova Importação
+            </a>
+        </div>
+    </div>
+</div>
+
+{% elif show_preview %}
+<!-- Preview -->
+<div class="card mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">
+            <i class="bi bi-eye text-primary me-2"></i>Pré-visualização da Importação
+        </h5>
+        <span class="badge bg-primary-subtle text-primary">{{ preview.total }} registro(s)</span>
+    </div>
+    <div class="card-body">
+        <!-- Summary -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="border rounded p-3 text-center">
+                    <div class="fs-3 fw-bold text-success">{{ preview.new_items }}</div>
+                    <div class="text-muted small">Novos colaboradores</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3 text-center">
+                    <div class="fs-3 fw-bold text-warning">{{ preview.duplicates }}</div>
+                    <div class="text-muted small">Duplicatas (matrícula ou e-mail existente)</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3 text-center">
+                    <div class="fs-3 fw-bold text-info">{{ parse_errors|length if parse_errors else 0 }}</div>
+                    <div class="text-muted small">Avisos de formatação</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded p-3 text-center">
+                    <div class="fs-3 fw-bold text-muted">{{ filename }}</div>
+                    <div class="text-muted small">Arquivo</div>
+                </div>
+            </div>
+        </div>
+
+        {% if parse_errors %}
+        <div class="alert alert-warning small">
+            <strong><i class="bi bi-info-circle me-1"></i>Avisos:</strong>
+            <ul class="mb-0 mt-1">
+                {% for e in parse_errors %}
+                <li>{{ e }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Preview Table -->
+        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light" style="position:sticky; top:0;">
+                    <tr>
+                        <th>#</th>
+                        <th>Matrícula</th>
+                        <th>Nome</th>
+                        <th>Cargo</th>
+                        <th>Setor</th>
+                        <th>E-mail</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in preview.previews %}
+                    <tr {% if p.is_duplicate %}class="table-warning"{% endif %}>
+                        <td class="text-muted small">{{ loop.index }}</td>
+                        <td><span class="tag-badge">{{ p.registration_code }}</span></td>
+                        <td class="fw-semibold">{{ p.name }}</td>
+                        <td class="small">{{ p.role or '—' }}</td>
+                        <td class="small">{{ p.department or '—' }}</td>
+                        <td class="small">{{ p.email or '—' }}</td>
+                        <td>
+                            {% if p.is_duplicate %}
+                            <span class="badge bg-warning-subtle text-warning">
+                                <i class="bi bi-exclamation-triangle me-1"></i>Duplicata
+                            </span>
+                            {% else %}
+                            <span class="badge bg-success-subtle text-success">
+                                <i class="bi bi-plus-circle me-1"></i>Novo
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Confirm -->
+        <form method="post" action="/custodians/import/confirm" class="mt-4">
+            <textarea name="csv_data" style="display:none;">{{ csv_rows | tojson | e }}</textarea>
+            <input type="hidden" name="skip_duplicates" value="{{ 'true' if skip_duplicates else 'false' }}">
+
+            <div class="d-flex align-items-center gap-3">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>Confirmar Importação
+                    <span class="badge bg-white text-primary ms-2">{{ preview.new_items }}</span>
+                </button>
+                <a href="/custodians/import" class="btn btn-ghost btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% else %}
+<!-- Upload Form -->
+<div class="card mb-4">
+    <div class="card-body p-5">
+        <form method="post" action="/custodians/import" enctype="multipart/form-data">
+            <div class="text-center mb-4">
+                <i class="bi bi-cloud-arrow-up text-primary" style="font-size:4rem;"></i>
+                <h4 class="mt-3">Envie seu arquivo CSV</h4>
+                <p class="text-muted">O sistema aceita separador <code>;</code> (ponto e vírgula) ou <code>,</code> (vírgula).<br>
+                Codificação UTF-8 (com ou sem BOM).</p>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="mb-3">
+                        <label for="file" class="form-label fw-semibold">Arquivo CSV</label>
+                        <input type="file" class="form-control form-control-lg" id="file" name="file"
+                               accept=".csv" required>
+                        <div class="form-text">Máximo 10 MB. Apenas arquivos .csv</div>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" name="skip_duplicates"
+                               id="skip_duplicates" value="true" checked>
+                        <label class="form-check-label" for="skip_duplicates">
+                            <strong>Pular duplicatas</strong> — Se a matrícula (ou e-mail) já existir, não importar o registro.
+                            <br><span class="text-muted small">Se desmarcado, os dados do colaborador existente serão atualizados.</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-upload me-1"></i>Enviar e Pré-visualizar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- CSV Format Help -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-info-circle text-info me-2"></i>Formato do Arquivo CSV
+        </h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">O arquivo CSV deve conter um <strong>cabeçalho</strong> (primeira linha) com os nomes das colunas.
+        As colunas <code>matricula</code>, <code>nome</code>, <code>email</code>, <code>cargo</code> e <code>setor</code> são <strong>obrigatórias</strong>.</p>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered font-monospace" style="font-size:.82rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Coluna</th>
+                        <th>Obrigatório</th>
+                        <th>Exemplo</th>
+                        <th>Observação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>matricula</code></td>
+                        <td><span class="badge bg-danger">Sim</span></td>
+                        <td>MAT-1045</td>
+                        <td>Código funcional único do colaborador</td>
+                    </tr>
+                    <tr>
+                        <td><code>nome</code></td>
+                        <td><span class="badge bg-danger">Sim</span></td>
+                        <td>Carlos Eduardo Silva</td>
+                        <td>Nome completo</td>
+                    </tr>
+                    <tr>
+                        <td><code>email</code></td>
+                        <td><span class="badge bg-danger">Sim</span></td>
+                        <td>carlos.silva@empresa.com</td>
+                        <td>E-mail corporativo (único)</td>
+                    </tr>
+                    <tr>
+                        <td><code>cargo</code></td>
+                        <td><span class="badge bg-danger">Sim</span></td>
+                        <td>Desenvolvedor Sênior</td>
+                        <td>Cargo / função do colaborador</td>
+                    </tr>
+                    <tr>
+                        <td><code>setor</code></td>
+                        <td><span class="badge bg-danger">Sim</span></td>
+                        <td>Engenharia de Software</td>
+                        <td>Departamento / setor de trabalho</td>
+                    </tr>
+                    <tr>
+                        <td><code>cpf</code></td>
+                        <td><span class="badge bg-secondary">Não</span></td>
+                        <td>000.000.000-00</td>
+                        <td>Documento pessoal</td>
+                    </tr>
+                    <tr>
+                        <td><code>ativo</code></td>
+                        <td><span class="badge bg-secondary">Não</span></td>
+                        <td>sim</td>
+                        <td>sim/não, true/false, 1/0 ou ativo/inativo. Padrão: sim</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3">
+            <h6 class="fw-semibold">Exemplo de CSV (ponto e vírgula):</h6>
+            <pre class="bg-light p-3 rounded border small mb-0">matricula;nome;email;cargo;setor;cpf;ativo
+MAT-1045;Carlos Eduardo Silva;carlos.silva@empresa.com;Desenvolvedor Sênior;Engenharia de Software;111.222.333-44;sim
+MAT-1050;Mariana Souza Lima;mariana.lima@empresa.com;Product Designer;Design e UX;222.333.444-55;sim
+MAT-1062;João Pedro Costa;joao.costa@empresa.com;Analista de Suporte;Tecnologia da Informação;;sim</pre>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

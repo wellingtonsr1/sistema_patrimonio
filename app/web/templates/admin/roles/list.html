@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Perfis & Permissões | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Perfis & Permissões</h3>
+        <p class="page-header-subtitle">Controle de acesso baseado em perfis (RBAC) — um usuário só acessa o que possui permissão.</p>
+    </div>
+    {% if can('perfis.criar') %}
+    <a href="/admin/roles/new" class="btn btn-primary">
+        <i class="bi bi-shield-plus me-1"></i> Novo Perfil
+    </a>
+    {% endif %}
+</div>
+
+{% if error %}
+<div class="alert alert-danger d-flex align-items-center gap-2 py-2 small" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    {% for role in roles %}
+    <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 p-4">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h5 class="fw-bold mb-1" style="font-size:1rem;">{{ role.name }}</h5>
+                    {% if role.is_system %}
+                    <span class="badge badge-soft-primary" style="font-size:.62rem;">PERFIL PADRÃO</span>
+                    {% endif %}
+                </div>
+                <span class="badge rounded-pill bg-secondary-subtle text-secondary">{{ role.users_count }} usuário(s)</span>
+            </div>
+            <p class="text-muted small mb-3" style="min-height:2.6rem;">{{ role.description or '' }}</p>
+            <div class="mb-3">
+                {% for perm in role.permission_names %}
+                <span class="badge badge-soft-gray font-monospace me-1 mb-1" style="font-size:.64rem;">{{ perm }}</span>
+                {% else %}
+                <span class="text-muted small">Nenhuma permissão atribuída</span>
+                {% endfor %}
+            </div>
+            <div class="d-flex gap-2 mt-auto border-top pt-3">
+                {% if can('perfis.editar') %}
+                <a href="/admin/roles/{{ role.id }}/edit" class="btn btn-ghost btn-sm">
+                    <i class="bi bi-pencil me-1"></i> Editar
+                </a>
+                {% endif %}
+                {% if can('perfis.excluir') and not role.is_system %}
+                <form method="post" action="/admin/roles/{{ role.id }}/delete"
+                      onsubmit="return confirm('Excluir o perfil {{ role.name }}?')">
+                    <button type="submit" class="btn btn-ghost btn-sm text-danger">
+                        <i class="bi bi-trash me-1"></i> Excluir
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

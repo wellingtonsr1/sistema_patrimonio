@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}{{ asset.tag }} - {{ asset.name }} | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<!-- Hero Header -->
+<div class="detail-hero mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <span class="tag-badge" style="font-size:1rem;padding:.35rem .75rem;">{{ asset.tag }}</span>
+            <div>
+                <h4 class="fw-bold mb-1" style="letter-spacing:-.02em;">{{ asset.name }}</h4>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                    <span class="status-pill status-pill-{{ asset.status.value }}">{{ asset.status.value }}</span>
+                    <span class="badge badge-soft-gray small">{{ asset.category.value }}</span>
+                    <span class="badge badge-soft-gray small">Condição: {{ asset.condition.value }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            {% if asset.status.value != 'BAIXADO' %}
+            {% if can('movimentacao.criar') %}
+            <a href="/movements/new?asset_id={{ asset.id }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-arrow-repeat"></i> Movimentar
+            </a>
+            {% endif %}
+            {% if can('manutencao.criar') %}
+            <a href="/maintenances/new?asset_id={{ asset.id }}" class="btn btn-ghost btn-sm">
+                <i class="bi bi-wrench"></i> Manutenção
+            </a>
+            {% endif %}
+            {% endif %}
+            <a href="/assets" class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column -->
+    <div class="col-12 col-lg-5">
+        <!-- Custody & Location -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-geo-alt-fill"></i> Custódia & Localização Atual</div>
+
+            <div class="info-block">
+                <div class="info-block-label">Responsável / Colaborador</div>
+                {% if asset.custodian %}
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:34px;height:34px;flex-shrink:0;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div>
+                        <a href="/custodians/{{ asset.custodian.id }}" class="fw-bold text-decoration-none" style="color:var(--c-text);">
+                            {{ asset.custodian.name }}
+                        </a>
+                        <div class="text-muted" style="font-size:.76rem;">{{ asset.custodian.role }} • Matrícula: {{ asset.custodian.registration_code }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="fw-semibold text-muted mt-1"><i class="bi bi-box me-1"></i>Disponível no Estoque / Sem Cautela</div>
+                {% endif %}
+            </div>
+
+            <div class="info-block">
+                <div class="info-block-label">Localização Física</div>
+                {% if asset.location %}
+                <div class="info-block-value"><i class="bi bi-building me-1 text-muted"></i>{{ asset.location.name }}</div>
+                <div class="text-muted" style="font-size:.76rem;">{{ asset.location.branch }} • {{ asset.location.department }}</div>
+                {% else %}
+                <div class="info-block-value text-muted">Estoque Geral / Almoxarifado</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Technical Specs -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-cpu"></i> Ficha Técnica & Dados Fiscais</div>
+            <dl class="row mb-0 small">
+                <dt class="col-5 text-muted fw-normal">Marca / Modelo:</dt>
+                <dd class="col-7 fw-semibold" style="color:var(--c-text);">{{ asset.brand or '-' }} / {{ asset.model or '-' }}</dd>
+                <dt class="col-5 text-muted fw-normal">Número de Série:</dt>
+                <dd class="col-7 font-monospace fw-bold">{{ asset.serial_number or 'Não informado' }}</dd>
+                <dt class="col-5 text-muted fw-normal">Data de Compra:</dt>
+                <dd class="col-7" style="color:var(--c-text);">{{ asset.purchase_date.strftime('%d/%m/%Y') if asset.purchase_date else '-' }}</dd>
+                <dt class="col-5 text-muted fw-normal">Nota Fiscal (NF):</dt>
+                <dd class="col-7" style="color:var(--c-text);">{{ asset.invoice_number or '-' }}</dd>
+                <dt class="col-5 text-muted fw-normal">Fornecedor:</dt>
+                <dd class="col-7" style="color:var(--c-text);">{{ asset.supplier or '-' }}</dd>
+                <dt class="col-5 text-muted fw-normal">Garantia até:</dt>
+                <dd class="col-7" style="color:var(--c-text);">{{ asset.warranty_expiry.strftime('%d/%m/%Y') if asset.warranty_expiry else '-' }}</dd>
+            </dl>
+            {% if asset.specifications %}
+            <div class="mt-3 pt-3 border-top small">
+                <div class="text-muted mb-1 fw-medium">Especificações Técnicas:</div>
+                <div class="text-secondary bg-light p-2 rounded" style="font-size:.82rem;">{{ asset.specifications }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Depreciation -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-cash-stack"></i> Contabilidade & Depreciação</div>
+            <div class="row g-2 text-center mb-3">
+                <div class="col-6 p-2 border-end">
+                    <div class="text-muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;">Valor de Aquisição</div>
+                    <div class="fw-bold fs-6 mt-1" style="color:var(--c-text);">R$ {{ "{:,.2f}".format(depreciation.initial_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</div>
+                </div>
+                <div class="col-6 p-2">
+                    <div class="text-muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;">Valor Contábil Atual</div>
+                    <div class="fw-bold fs-6 mt-1" style="color:var(--green);">R$ {{ "{:,.2f}".format(depreciation.current_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</div>
+                </div>
+            </div>
+            <div class="small text-muted d-flex justify-content-between">
+                <span>Depreciação acumulada</span>
+                <span class="fw-bold">{{ depreciation.depreciation_percent }}% ({{ depreciation.age_months }} meses)</span>
+            </div>
+            <div class="progress mt-2" style="height:5px;background:var(--c-border-light);">
+                <div class="progress-bar" role="progressbar" style="width:{{ depreciation.depreciation_percent }}%;background:var(--c-primary);"></div>
+            </div>
+        </div>
+
+        <!-- QR Code -->
+        <div class="card p-4 text-center">
+            <div class="section-divider mb-2 justify-content-center"><i class="bi bi-qr-code"></i> Etiqueta QR Code</div>
+            <div id="qrcode" class="d-flex justify-content-center my-2"></div>
+            <div class="font-monospace small fw-bold text-muted">{{ asset.tag }}</div>
+        </div>
+    </div>
+
+    <!-- Right Column: Timeline -->
+    <div class="col-12 col-lg-7">
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+                <div>
+                    <h5 class="fw-bold mb-1" style="font-size:1rem;letter-spacing:-.01em;">
+                        <i class="bi bi-clock-history me-1" style="color:var(--c-primary-text);"></i>Trilha de Fluxo & Movimentações
+                    </h5>
+                    <span class="text-muted small">Histórico auditável e imutável de todas as transferências</span>
+                </div>
+                {% if asset.status.value != 'BAIXADO' and can('movimentacao.criar') %}
+                <a href="/movements/new?asset_id={{ asset.id }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg"></i> Nova Ação
+                </a>
+                {% endif %}
+            </div>
+
+            {% if timeline %}
+            <ul class="modern-timeline">
+                {% for item in timeline %}
+                <li class="modern-timeline-item">
+                    <div class="modern-timeline-dot">
+                        <i class="bi bi-circle-fill"></i>
+                    </div>
+                    <div class="modern-timeline-card">
+                        <!-- Header -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge badge-soft-primary font-monospace" style="font-size:.7rem;">{{ item.movement_type.value }}</span>
+                                {% if item.term_code %}
+                                <span class="tag-badge" style="font-size:.68rem;">{{ item.term_code }}</span>
+                                {% endif %}
+                            </div>
+                            <span class="text-muted small" style="font-size:.74rem;">
+                                <i class="bi bi-calendar3 me-1"></i>{{ item.timestamp.strftime('%d/%m/%Y %H:%M') }}
+                            </span>
+                        </div>
+
+                        <!-- Origin → Destination -->
+                        <div class="flow-card">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-12 col-md-5">
+                                    <div class="flow-label flow-label-origin">Origem</div>
+                                    <div class="flow-value"><i class="bi bi-geo-alt me-1 text-muted"></i>{{ item.origin_location_name or 'Estoque Geral' }}</div>
+                                    <div class="flow-sub">{{ item.origin_custodian_name or 'Nenhum' }}</div>
+                                </div>
+                                <div class="col-12 col-md-2 text-center d-none d-md-block" style="color:var(--c-primary-text);font-size:1.2rem;">
+                                    <i class="bi bi-arrow-right"></i>
+                                </div>
+                                <div class="col-12 col-md-5">
+                                    <div class="flow-label flow-label-dest">Destino</div>
+                                    <div class="flow-value" style="color:var(--c-primary-text);font-weight:700;"><i class="bi bi-geo-alt-fill me-1"></i>{{ item.destination_location_name or 'Estoque Geral' }}</div>
+                                    <div class="flow-sub" style="color:var(--c-primary-text);">{{ item.destination_custodian_name or 'Almoxarifado / Estoque' }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reason & Notes -->
+                        <div class="small mb-1" style="color:var(--c-text);">
+                            <strong>Motivo:</strong> {{ item.reason }}
+                        </div>
+                        {% if item.notes %}
+                        <div class="small text-muted mb-1"><em>{{ item.notes }}</em></div>
+                        {% endif %}
+
+                        <!-- Footer -->
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top text-muted" style="font-size:.74rem;">
+                            <span>Registrado por: <strong style="color:var(--c-text);">{{ item.operator_name }}</strong></span>
+                            {% if item.term_code and can('movimentacao.visualizar') %}
+                            <a href="/movements/{{ item.id }}/term" class="btn btn-ghost btn-sm py-1 px-2" target="_blank">
+                                <i class="bi bi-printer me-1"></i> Imprimir Termo
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-clock empty-state-icon"></i>
+                <div class="empty-state-title">Nenhuma movimentação registrada</div>
+                <div class="empty-state-text">O histórico de fluxo deste bem aparecerá aqui.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    new QRCode(document.getElementById("qrcode"), {
+        text: window.location.origin + "/assets/{{ asset.id }}",
+        width: 100,
+        height: 100,
+        colorDark: "#111827",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+    });
+</script>
+{% endblock %}

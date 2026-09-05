@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Auditoria | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Trilha de Auditoria</h3>
+        <p class="page-header-subtitle">Registro imutável das ações administrativas, logins e acessos negados.</p>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card p-3 mb-4">
+    <form method="get" action="/admin/audit" class="row g-2 align-items-end">
+        <div class="col-12 col-lg-4">
+            <label class="form-label small fw-semibold">Buscar</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Usuário, recurso, descrição..." value="{{ search }}">
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+            <label class="form-label small fw-semibold">Módulo</label>
+            <select name="module" class="form-select">
+                <option value="">Todos</option>
+                {% for m in modules %}
+                <option value="{{ m }}" {% if selected_module == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+            <label class="form-label small fw-semibold">Ação</label>
+            <select name="action" class="form-select">
+                <option value="">Todas</option>
+                {% for a in actions %}
+                <option value="{{ a }}" {% if selected_action == a %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+            <label class="form-label small fw-semibold">Resultado</label>
+            <select name="result" class="form-select">
+                <option value="">Todos</option>
+                <option value="SUCCESS" {% if selected_result == 'SUCCESS' %}selected{% endif %}>Sucesso</option>
+                <option value="FAILURE" {% if selected_result == 'FAILURE' %}selected{% endif %}>Falha</option>
+                <option value="DENIED" {% if selected_result == 'DENIED' %}selected{% endif %}>Negado</option>
+                <option value="LOCKED" {% if selected_result == 'LOCKED' %}selected{% endif %}>Bloqueado</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-3 col-lg-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i> Filtrar</button>
+            {% if search or selected_module or selected_action or selected_result %}
+            <a href="/admin/audit" class="btn btn-ghost" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header-clean">
+        <span class="text-muted small">Mostrando <strong>{{ logs|length }}</strong> registro(s)</span>
+    </div>
+
+    {% if logs %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Data / Hora</th>
+                    <th>Usuário</th>
+                    <th>Ação</th>
+                    <th>Módulo</th>
+                    <th>Recurso</th>
+                    <th>IP</th>
+                    <th>Resultado</th>
+                    <th>Descrição / Dados</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="text-muted small">{{ log.id }}</td>
+                    <td class="small text-muted text-nowrap">{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                    <td class="small">{{ log.username or '-' }}</td>
+                    <td><span class="badge badge-soft-primary font-monospace" style="font-size:.64rem;">{{ log.action }}</span></td>
+                    <td class="small">{{ log.module or '-' }}</td>
+                    <td class="small">
+                        {{ log.resource or '-' }}
+                        {% if log.resource_ref %}
+                        <div class="text-muted font-monospace" style="font-size:.7rem;">{{ log.resource_ref }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="small font-monospace text-muted">{{ log.ip_address or '-' }}</td>
+                    <td>
+                        {% if log.result == 'SUCCESS' %}
+                        <span class="badge bg-success-subtle text-success">OK</span>
+                        {% elif log.result == 'DENIED' %}
+                        <span class="badge badge-soft-red">NEGADO</span>
+                        {% elif log.result == 'FAILURE' %}
+                        <span class="badge badge-soft-red">FALHA</span>
+                        {% else %}
+                        <span class="badge badge-soft-red">{{ log.result }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="max-width:320px;">
+                        <div class="small">{{ log.description or '' }}</div>
+                        {% if log.previous_data or log.new_data %}
+                        <details class="mt-1">
+                            <summary class="small text-primary" style="cursor:pointer;">ver dados anteriores/posteriores</summary>
+                            <div class="small mt-2 p-2 rounded font-monospace" style="background:var(--c-surface-alt);font-size:.72rem;white-space:pre-wrap;">
+                                {% if log.previous_data %}ANTERIOR: {{ log.previous_data }}{% endif %}
+                                {% if log.previous_data and log.new_data %}
+{% endif %}
+                                {% if log.new_data %}POSTERIOR: {{ log.new_data }}{% endif %}
+                            </div>
+                        </details>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-journal-x empty-state-icon"></i>
+        <div class="empty-state-title">Nenhum registro encontrado</div>
+        <div class="empty-state-text">Ajuste os filtros para consultar a trilha de auditoria.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

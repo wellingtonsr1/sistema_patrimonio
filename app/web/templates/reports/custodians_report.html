@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório de Colaboradores | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header no-print">
+    <div>
+        <h3 class="page-header-title">Relação de Colaboradores & Custodiantes</h3>
+        <p class="page-header-subtitle">Listagem analítica de colaboradores e dos equipamentos sob custódia de cada um.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if can('relatorios.exportar') %}
+        <a href="/api/v1/reports/custodians/csv" class="btn btn-success" download>
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Baixar CSV
+        </a>
+        {% endif %}
+        <button onclick="window.print()" class="btn btn-ghost">
+            <i class="bi bi-printer me-1"></i> Imprimir
+        </button>
+    </div>
+</div>
+
+<div class="card p-4">
+    <div class="border-bottom pb-3 mb-3 text-center">
+        <h4 class="fw-bold mb-0 text-uppercase" style="font-size:1.1rem;">{{ company_name }}</h4>
+        <div class="small text-muted">Relação de Colaboradores e Custodiantes • {{ total }} registros</div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle small mb-0">
+            <thead>
+                <tr>
+                    <th>Matrícula</th>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>CPF</th>
+                    <th>Cargo</th>
+                    <th>Setor</th>
+                    <th>Situação</th>
+                    <th class="text-center">Bens sob Custódia</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in custodians %}
+                <tr>
+                    <td class="font-monospace fw-bold">{{ c.registration_code }}</td>
+                    <td><strong>{{ c.name }}</strong></td>
+                    <td>{{ c.email }}</td>
+                    <td class="font-monospace">{{ c.cpf or '-' }}</td>
+                    <td>{{ c.role }}</td>
+                    <td>{{ c.department }}</td>
+                    <td>
+                        {% if c.is_active %}
+                        <span class="badge bg-success-subtle text-success">Ativo</span>
+                        {% else %}
+                        <span class="badge badge-soft-gray">Inativo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ c.active_assets_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
