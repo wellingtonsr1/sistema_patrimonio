@@ -1,0 +1,20 @@
+*** Banco já usado ***
+Login: admin
+Senha: SuaSenha@123
+
+
+- Caso seja uma nova instalação:
+
+*** Pelo CLI ***
+python -m app.cli create-user \
+  --username admin \
+  --password 'UmaSenhaForteAqui' \
+  --admin
+
+
+*** OU ***
+export AUTH_ADMIN_USERNAME="admin"
+export AUTH_ADMIN_PASSWORD="uma-senha-forte"
+export AUTH_ADMIN_NAME="Administrador"
+
+python run.py
