@@ -258,7 +258,7 @@ class MovementService:
                 "specifications": asset.specifications or "N/A"
             },
             "custodian": {
-                "name": custodian.name if custodian else movement.destination_custodian_name or "N/A",
+                "name": custodian.name if custodian else movement.destination_custodian_name or "Almoxarifado / Estoque",
                 "registration_code": custodian.registration_code if custodian else "N/A",
                 "role": custodian.role if custodian else "N/A",
                 "department": custodian.department if custodian else "N/A",
@@ -266,6 +266,6 @@ class MovementService:
                 "cpf": custodian.cpf if custodian and custodian.cpf else "N/A"
             },
             "location": {
-                "name": movement.destination_location_name or "Setor Padrão"
+                "name": movement.destination_location_name or "Almoxarifado / Estoque"
             }
         }
