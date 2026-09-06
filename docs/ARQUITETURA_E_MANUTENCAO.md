@@ -905,7 +905,113 @@ Constantes não-env: `APP_NAME`, `APP_VERSION`, `APP_DESCRIPTION`, `COMPANY_NAME
 
 ## 19. Testes
 
-- **Framework:** pytest + `TestClient` (FastAPI/starlette). **110 testes coletados**, todos passando
+A suite de testes (9 arquivos, 110 testes) cobre autenticação, RBAC, integração AD (com LDAP mockado), API, movimentações, bens, importações e central de ajuda.
+
+Execução: `pytest -v` (ou `python3 -m pytest tests/`).
+
+### Execução
+
+```bash
+pytest -v
+```
+
+A suíte cobre: **controle de acesso** (`tests/test_rbac.py`): autorização por perfil em APIs e páginas, deny by default, menu dinâmico, bloqueio/desbloqueio de usuário, lockout por tentativas, auditoria, proteção do último administrador e tentativas de escalação de privilégios; **autenticação** (`tests/test_auth.py`); **integração AD** (`tests/test_ad.py`, com a camada LDAP mockada); movimentações, bens, importações e central de ajuda.
+
+---
+
+## 20. Segurança adicional
+
+### Primeiro acesso protegido
+
+O endpoint `/setup` é protegido por verificação de existência de usuários: só está disponível quando **não existem usuários** no banco e **não há** `AUTH_ADMIN_PASSWORD` configurada. Após a criação do primeiro administrador, o acesso a `/setup` é redirecionado para `/login`.
+
+### Impasse de acesso resolvido
+
+Antes da implementação do primeiro acesso web, uma instalação nova sem `AUTH_ADMIN_PASSWORD` ficava inacessível (impossível criar o primeiro usuário). Agora o fluxo web resolve esse impasse, mantendo as outras opções (variável de ambiente e CLI) como alternativas.
+
+---
+
+## 21. Primeiro Acesso (Setup Inicial)
+
+### Quando o sistema considera que está em estado de primeira configuração
+
+O sistema entra em estado de primeiro acesso quando **ambas** as condições são verdadeiras:
+1. **Não existem usuários** no banco de dados (`users` vazio)
+2. **`AUTH_ADMIN_PASSWORD` não está definida** (variável de ambiente vazia)
+
+Nesse estado, o sistema oferece a tela de configuração inicial.
+
+### Como o usuário acessa o fluxo
+
+1. **Via link na tela de login**: na página `/login`, existe um link "Primeiro acesso" que redireciona para `/setup`
+2. **Acesso direto**: acessando `/setup` diretamente no navegador
+
+### Comportamento em instalações já configuradas
+
+- Se **existirem usuários** no banco: o acesso a `/setup` é redirecionado para `/login`
+- Se **`AUTH_ADMIN_PASSWORD` estiver definida**: o fluxo de primeiro acesso não está disponível (o admin foi criado automaticamente no start)
+
+### Botão/link "Primeiro acesso"
+
+O template `login.html` contém um link visível apenas em estado de primeiro acesso:
+```html
+<a href="/setup" class="text-decoration-none text-primary small fw-semibold">
+    <i class="bi bi-person-plus me-1"></i> Primeiro acesso
+</a>
+```
+
+### Criação do primeiro administrador
+
+A tela `/setup` permite criar o primeiro administrador com:
+- **Nome completo** (obrigatório)
+- **Nome de usuário** (obrigatório)
+- **E-mail** (opcional)
+- **Senha** (obrigatória, mínimo 8 caracteres)
+- **Confirmação de senha** (deve coincidir)
+
+### Ausência de senha padrão ou temporária
+
+**Não existe senha padrão ou temporária.** O administrador cria sua própria senha durante o primeiro acesso. A senha é hasheada com PBKDF2-HMAC-SHA256 antes de ser armazenada.
+
+### Ausência de obrigatoriedade de troca de senha posteriormente
+
+**Não há obrigatoriedade de troca de senha** após o primeiro login. O administrador pode usar a senha criada indefinidamente, até que opte por alterá-la voluntarymente em `/profile/password`.
+
+### Proteção do endpoint de bootstrap
+
+O endpoint `/setup` possui proteções:
+- Verificação de estado de primeiro acesso em **cada requisição** (GET e POST)
+- Se outro processo criar o usuário entre a verificação e o commit, a segunda requisição é redirecionada para `/login`
+- A criação é atômica dentro de uma transação
+
+### Impossibilidade de repetir a criação inicial
+
+**Não é possível repetir a criação inicial** depois que o sistema já foi inicializado (primeiro administrador criado). O link "Primeiro acesso" desaparece e o acesso a `/setup` é redirecionado.
+
+### Comportamento em situações concorrentes
+
+O código utiliza verificação dentro da mesma requisição/commit:
+```python
+def _first_access_enabled(db: Session) -> bool:
+    if AUTH_ADMIN_PASSWORD:
+        return False
+    return db.query(User).first() is None
+```
+
+A verificação é feita no início de cada requisição GET e POST para `/setup`. Como o SQLite serializa escritas e a checagem + INSERT acontecem no mesmo commit, duas requisições concorrentes não criam dois administradores — a segunda verá o usuário já existente e será redirecionada.
+
+### Auditoria do primeiro acesso
+
+A criação do primeiro administrador é registrada na auditoria com:
+- Ação: `CRIACAO`
+- Módulo: `Usuários`
+- Recurso: `User`
+- Dados novos: username, full_name, email, is_admin
+- **Nunca** registra senha, hash ou credencial
+
+---
+
+## 19. Testes- **Framework:** pytest + `TestClient` (FastAPI/starlette). **110 testes coletados**, todos passando
   no momento da análise (`python3 -m pytest tests/`).
 - **Infra (`tests/conftest.py`):** SQLite **em memória** (`StaticPool`, banco compartilhado entre
   sessões), tabelas recriadas por teste (`Base.metadata.create_all`/`drop_all`),

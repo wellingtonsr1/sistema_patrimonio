@@ -129,13 +129,26 @@ O sistema exige **login** para a interface web, para a API REST e para as export
 
 ### Primeiro usuário (administrador)
 
-**Opção A — variáveis de ambiente** (criado automaticamente no primeiro start):
+O SisPatrimônio Pro oferece **três formas** de criar o primeiro administrador:
+
+**Opção A — Variável de ambiente** (criação automática no primeiro start):
 
 ```bash
 AUTH_ADMIN_USERNAME=admin AUTH_ADMIN_PASSWORD='SenhaForte@123' python run.py
 ```
 
-**Opção B — linha de comando:**
+**Opção B — Interface web (Primeiro Acesso):**
+
+Se não houver usuários no banco e `AUTH_ADMIN_PASSWORD` não estiver definida, o sistema exibe automaticamente a tela de **Configuração Inicial** (`/setup`) com um link "Primeiro acesso" na tela de login. Nesta tela, o administrador cria sua conta diretamente pelo navegador:
+
+1. Acesse [http://localhost:8000/login](http://localhost:8000/login)
+2. Clique no link **"Primeiro acesso"** (ou acesse diretamente `/setup`)
+3. Preencha nome, usuário, e-mail e senha (mínimo 8 caracteres)
+4. O sistema criará o administrador e os perfis padrão automaticamente
+
+> ℹ️ A tela de primeiro acesso só está disponível quando **não existem usuários** no banco e **não há** `AUTH_ADMIN_PASSWORD` configurada. Após a criação do primeiro administrador, o link desaparece.
+
+**Opção C — Linha de comando:**
 
 ```bash
 python -m app.cli create-user --username admin --password 'SenhaForte@123' --name "Administrador" --admin
@@ -159,6 +172,7 @@ python -m app.cli create-user --username admin --password 'SenhaForte@123' --nam
 | Área | Comportamento sem login |
 |---|---|
 | Páginas web (`/`, `/assets`, `/custodians`, `/reports/...`, etc.) | Redirecionamento para `/login` (o caminho original é preservado via `?next=`) |
+| `/setup` (Primeiro Acesso) | Disponível somente em instalação nova (banco vazio sem usuários) |
 | API REST `/api/v1/*` (mutações, consultas e relatórios) | `401 Unauthorized` |
 | Exportações CSV (`/api/v1/reports/*/csv`) | `401 Unauthorized` |
 | `/health` | Público (monitoramento) |
@@ -169,6 +183,23 @@ python -m app.cli create-user --username admin --password 'SenhaForte@123' --nam
 **Decisão:** toda a API `/api/v1` (inclusive consultas GET) foi protegida porque os
 retornos contêm dados sensíveis (CPF, números de série, valores, nomes). Não há
 consumidor público da API — ela é o backend administrativo do sistema.
+
+### Primeiro acesso (instalação nova)
+
+Quando uma instalação **não possui nenhum usuário** e **não tem** `AUTH_ADMIN_PASSWORD` configurada:
+
+1. A tela de login (`/login`) exibe um link **"Primeiro acesso"** que leva à página `/setup`
+2. O administrador preenche: nome completo, usuário, e-mail (opcional) e senha (mínimo 8 caracteres)
+3. O sistema valida os dados e cria o primeiro administrador
+4. Os perfis padrão são gerados automaticamente
+5. O administrador é redirecionado para o login e pode acessar o sistema
+
+**Proteções do primeiro acesso:**
+- Só funciona em instalação nova (banco vazio)
+- `AUTH_ADMIN_PASSWORD` desabilita o fluxo (admin já criado pelo env)
+- Verificação idempotente contra condição de corrida
+- Não é possível repetir a criação inicial depois que o sistema foi inicializado
+- Auditoria registra a criação sem expor senha ou credencial
 
 ### API via script (curl)
 
@@ -207,6 +238,22 @@ bloqueada por **15 minutos** no servidor (`423 Locked` na API; mensagem na web).
 O bloqueio é por conta, registrado na trilha de auditoria (`LOGIN_BLOQUEADO`),
 e não revela a existência da conta (o tempo de resposta é equalizado para
 usuários inexistentes).
+
+### Fluxo de primeiro acesso
+
+Quando uma instalação **não possui nenhum usuário** e **não tem** `AUTH_ADMIN_PASSWORD` configurada:
+
+1. A tela de login exibe um link **"Primeiro acesso"** que leva à página `/setup`
+2. O administrador preenche: nome completo, usuário, e-mail (opcional) e senha
+3. O sistema valida: senha mínimo 8 caracteres, confirmação iguais, usuário não vazio
+4. Após a criação, os perfis padrão são gerados automaticamente e o administrador é vinculado ao perfil "Administrador"
+5. O link "Primeiro acesso" deixa de aparecer após a criação
+
+**Proteções do primeiro acesso:**
+- Só funciona em instalação nova (banco vazio sem usuários)
+- `AUTH_ADMIN_PASSWORD` desabilita o fluxo (já existe admin pelo env)
+- Verificação idempotente: se outra requisição criar o usuário simultaneamente, a segunda é redirecionada para o login
+- Não é possível repetir a criação inicial depois que o sistema foi inicializado
 
 ---
 
@@ -531,7 +578,9 @@ cada execução do CLI (`ensure_default_roles`).
 ## ❓ Central de Ajuda e Manual
 
 O sistema possui uma **central de ajuda integrada** (`/ajuda`), acessível pelo
-botão ❓ no cabeçalho ou pelo item "Ajuda e Manual" no menu:
+botão ❓ no cabeçalho ou pelo item "Ajuda e Manual" no menu.
+
+> ℹ️ Os artigos administrativos exigem permissões específicas (usuários, perfis ou auditoria) para visualização.
 
 - **Pesquisa** no manual (artigos e FAQ por texto completo).
 - **Artigos** por módulo (primeiros passos, patrimônio, movimentação, manutenção,
@@ -616,7 +665,7 @@ Práticas implementadas (verificáveis no código):
 - **Sessões**: token de 32 bytes (`secrets.token_urlsafe`) em cookie HttpOnly/SameSite=Lax (Secure configurável); banco guarda apenas o hash SHA-256; expiração e revogação no servidor.
 - **Lockout**: bloqueio temporário por conta após N falhas, com timing equalizado para usuários inexistentes.
 - **RBAC deny by default** validado no backend em todas as rotas; menu/botões são apenas apresentação.
-- **AD/LDAP**: senha do usuário nunca persistida/logada; senha da conta de serviço somente em variáveis de ambiente; timeout em todas as operações; LDAPS com validação de certificado recomendado; dois binds distintos (busca vs. autenticação).
+- **AD/LDAP**: senha do usuário nunca persistida/logada; timeout em todas as operações; LDAPS com validação de certificado recomendado; cada usuário autentica com a própria conta (bind direto, sem conta de serviço).
 - **Auditoria** imutável e somente-leitura, incluindo acessos negados, com dados before/after em JSON — nunca credenciais.
 - **Open redirect**: o parâmetro `next` do login aceita apenas caminhos internos.
 

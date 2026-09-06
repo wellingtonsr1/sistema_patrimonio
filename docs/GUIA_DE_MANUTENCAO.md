@@ -103,8 +103,26 @@ com as variáveis de ambiente como fallback dos campos vazios.
 ```bash
 pip install -r requirements.txt
 python run.py                 # http://127.0.0.1:8000 · Swagger em /docs
-# admin inicial: export AUTH_ADMIN_PASSWORD='...'  antes do 1º start
-# ou: python -m app.cli create-user --username admin --password '...' --admin
+```
+
+### Criação do primeiro administrador
+
+O SisPatrimônio Pro possui **três formas** de criar o primeiro administrador:
+
+**1. Via interface web (Primeiro Acesso)** — recomendado para instalações novas:
+- Se não houver usuários no banco e `AUTH_ADMIN_PASSWORD` não estiver definida, a tela de login exibe um link "Primeiro acesso"
+- Acesse `/setup` e preencha: nome, usuário, e-mail e senha (mínimo 8 caracteres)
+- O sistema cria o administrador e osperfis padrão automaticamente
+
+**2. Via variável de ambiente** (criação automática no start):
+```bash
+export AUTH_ADMIN_PASSWORD='SenhaForte@123'
+python run.py
+```
+
+**3. Via CLI** (criação manual):
+```bash
+python -m app.cli create-user --username admin --password 'SenhaForte@123' --admin
 ```
 
 ## Como executar os testes

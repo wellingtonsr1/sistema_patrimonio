@@ -414,6 +414,21 @@ def execute_import(
                 imported += 1
                 continue
 
+            # Verificar duplicata de serial_number antes de criar
+            if serial_number:
+                serial_existing = db.query(Asset).filter(
+                    Asset.serial_number == serial_number
+                ).first()
+                if serial_existing and skip_duplicates:
+                    skipped += 1
+                    continue
+                if serial_existing and not skip_duplicates:
+                    errors.append(
+                        f"Linha {i}: número de série '{serial_number}' já cadastrado para o tombamento "
+                        f"'{serial_existing.tag}'"
+                    )
+                    continue
+
             # Criar novo asset
             asset = Asset(
                 tag=tag,
@@ -458,11 +473,13 @@ def execute_import(
             errors.append(f"Linha {i}: {str(e)}")
             continue
 
-    if not errors:
+    try:
         db.commit()
-    else:
-        # Se houve erros parciais, faz commit do que foi processado corretamente
-        db.commit()
+    except Exception:
+        db.rollback()
+        # Se o commit falhou, retornar o que foi processado até o momento
+        # e incluir o erro na lista
+        errors.append("Erro ao salvar os dados no banco.")
 
     return {
         "imported": imported,

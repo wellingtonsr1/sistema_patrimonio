@@ -6,13 +6,13 @@
 
 ## 1. Resumo Executivo
 
-O SisPatrimônio Pro **não possui assistente de instalação, nem tela de "primeiro acesso", nem criação automática obrigatória de administrador**. O primeiro login depende de uma das seguintes condições:
+O SisPatrimônio Pro possui **três formas** de criação do primeiro administrador:
 
 - **Variável de ambiente `AUTH_ADMIN_PASSWORD` definida** → o sistema cria automaticamente um usuário administrador (padrão: `admin`) no primeiro início.
+- **Interface web de Primeiro Acesso (`/setup`)** → quando não existem usuários no banco e `AUTH_ADMIN_PASSWORD` não está definida, a tela de login exibe um link "Primeiro acesso" que leva a uma página de configuração onde o administrador cria sua conta diretamente pelo navegador.
 - **CLI `create-user` executada** → permite criar um usuário manualmente antes do primeiro login.
-- **Interface administrativa** → somente acessível **após** um login válido, o que cria um impasse se não houver usuário prévio.
 
-Sem nenhuma dessas condições, a instalação fica inacessível: a tela de login sempre exibe "Usuário ou senha inválidos" se não houver usuários no banco.
+O fluxo de Primeiro Acesso resolve o impasse anterior onde uma instalação nova sem `AUTH_ADMIN_PASSWORD` ficava inacessível.
 
 ---
 
@@ -89,11 +89,60 @@ python -m app.cli create-user \
 
 **Evidência:** `app/cli.py`.
 
-### 4.3 Interface Administrativa (após login)
+### 4.3 Interface de Primeiro Acesso (web — NOVA)
+
+**Implementada em:** `app/web/routes.py` (seção "PRIMEIRO ACESSO / CONFIGURAÇÃO INICIAL").
+
+**Rotas:**
+- `GET /setup` — exibe a tela de configuração inicial (`app/web/templates/setup.html`)
+- `POST /setup` — processa a criação do primeiro administrador
+
+**Quando está disponível:**
+- Só quando **não existem usuários** no banco (`db.query(User).first() is None`)
+- E **`AUTH_ADMIN_PASSWORD` não está definida** (variável de ambiente vazia)
+
+**Função de verificação:**
+```python
+def _first_access_enabled(db: Session) -> bool:
+    if AUTH_ADMIN_PASSWORD:
+        return False
+    return db.query(User).first() is None
+```
+
+**Proteções:**
+- Verificação em cada requisição GET e POST para `/setup`
+- Se outro processo criar o usuário entre a verificação e o commit, a segunda requisição é redirecionada para `/login`
+- Após a criação, o link "Primeiro acesso" na tela de login deixa de aparecer
+
+**Template:** `app/web/templates/setup.html` — formulário com:
+- Nome completo (obrigatório)
+- Nome de usuário (obrigatório)
+- E-mail (opcional)
+- Senha (obrigatória, mínimo 8 caracteres)
+- Confirmação de senha (deve coincidir)
+
+**Link na tela de login:** `app/web/templates/login.html` contém:
+```html
+<a href="/setup" class="text-decoration-none text-primary small fw-semibold">
+    <i class="bi bi-person-plus me-1"></i> Primeiro acesso
+</a>
+```
+
+**Auditoria:** A criação é registrada com ação `CRIACAO`, módulo `Usuários`, sem registrar senha ou credencial.
+
+**Fluxo após criação:**
+1. O administrador é criado com `is_admin=True`
+2. `ensure_default_roles(db)` é chamado para garantir os perfis padrão
+3. O perfil "Administrador" é atribuído ao novo usuário (se ainda não estiver)
+4. Redireciona para `/login` onde o administrador pode fazer login
+
+**Evidência:** `app/web/routes.py` (seção "PRIMEIRO ACESSO / CONFIGURAÇÃO INICIAL"), `app/web/templates/setup.html`, `app/web/templates/login.html`.
+
+### 4.4 Interface Administrativa (após login)
 
 - Rota: `POST /admin/users/new` (`app/web/admin_routes.py`, função `admin_create_user`).
 - Exige permissão `usuarios.criar`.
-- **Impasse:** a interface só é acessível **depois** de um usuário autenticado — o que exige que o primeiro usuário já exista.
+- **Disponível somente após** um login válido.
 
 **Evidência:** `app/web/admin_routes.py`.
 
@@ -332,17 +381,13 @@ Login AD → resolve_authentication → ADAuthProvider
 
 ## 13. Pontos de Atenção (apenas relatório — sem correção)
 
-1. **Impasse de acesso:** se `AUTH_ADMIN_PASSWORD` não for definida **e** ninguém usar a CLI `create-user` antes, o sistema fica completamente inacessível — a interface administrativa só fica acessível após um login válido.
+1. **`AUTH_PROVIDER` não governa o fluxo:** a variável existe e é lida em `get_auth_provider()`, mas os pontos de login não usam essa função — usam `resolve_authentication()` que decide internamente.
 
-2. **Sem tela de "primeiro acesso":** o sistema não detecta que não existem usuários e não oferece nenhum mecanismo de setup inicial.
+2. **AD opcional:** o sistema funciona totalmente sem AD. Até o primeiro login pode ser feito com o admin local sem qualquer configuração de AD.
 
-3. **CLI como única saída sem variável de ambiente:** segundo a documentação do código, *"Use o CLI (python -m app.cli create-user) para criar outros usuários sem variáveis de ambiente"* — mas a interface web não permite criar o primeiro usuário sem já ter um administrador logado.
+3. **Configuração do AD via interface exige login prévio:** para configurar o AD pela interface (`/admin/ad`), é necessário já existir um usuário local administrador — o AD não resolve o problema do primeiro acesso.
 
-4. **`AUTH_PROVIDER` não governa o fluxo:** a variável existe e é lida em `get_auth_provider()`, mas os pontos de login não usam essa função — usam `resolve_authentication()` que decide internamente.
-
-5. **AD opcional:** o sistema funciona totalmente sem AD. Até o primeiro login pode ser feito com o admin local sem qualquer configuração de AD.
-
-6. **Configuração do AD via interface exige login prévio:** para configurar o AD pela interface (`/admin/ad`), é necessário já existir um usuário local administrador — o AD não resolve o problema do primeiro acesso.
+> **Nota:** Os pontos 1-3 do relatório anterior (impasse de acesso, sem tela de primeiro acesso, CLI como única saída) foram **resolvidos** com a implementação da interface web de Primeiro Acesso (`/setup`). Agora existe uma terceira forma de criar o primeiro administrador sem variável de ambiente nem CLI.
 
 ---
 
@@ -370,12 +415,47 @@ Resposta baseada no código existente:
    (senha mínima de 8 caracteres; pode usar `--name` e `--email`; pode adicionar `--role` para atribuir outros perfis).
 3. Na tela de login, usar as credenciais criadas.
 
-**Opção C — Usando AD (se integrado):**
+**Opção C — Usando interface web de Primeiro Acesso (NOVA — resolve o impasse):**
+1. Executar `python run.py` (o sistema inicia, cria tabelas e perfis, mas **não cria nenhum usuário** se `AUTH_ADMIN_PASSWORD` não estiver definida).
+2. Acessar [http://localhost:8000/login](http://localhost:8000/login) no navegador.
+3. Clicar no link **"Primeiro acesso"** (ou acessar diretamente `/setup`).
+4. Preencher o formulário de configuração inicial:
+   - Nome completo
+   - Nome de usuário
+   - E-mail (opcional)
+   - Senha (mínimo 8 caracteres)
+   - Confirmação da senha
+5. Clicar em "Criar administrador".
+6. O sistema:
+   - Valida os dados (senha mínimo 8 caracteres, confirmação iguais)
+   - Cria o usuário administrador (`is_admin=True`)
+   - Garante os perfis padrão (`ensure_default_roles`)
+   - Vincula o perfil "Administrador" ao novo usuário
+   - Registra a criação na auditoria (sem senha/credencial)
+7. Redireciona para `/login` onde o administrador já pode fazer login com as credenciais criadas.
+
+** Quando o Primeiro Acesso NÃO está disponível:**
+- Se **`AUTH_ADMIN_PASSWORD` estiver definida** (admin já criado automaticamente)
+- Se **existirem usuários** no banco (sistema já configurado)
+- Nesses casos, o acesso a `/setup` é redirecionado para `/login`
+
+**Impedimentos resolvidos pela interface web de Primeiro Acesso:**
+- Antes: sem `AUTH_ADMIN_PASSWORD` e sem CLI, a instalação ficava inacessível
+- Agora: a tela de login oferece o link "Primeiro acesso" que permite criar o primeiro administrador diretamente pelo navegador
+- O link só aparece quando o sistema está em estado de primeira configuração (banco vazio sem usuários)
+
+**Opção D — Usando AD (se integrado):**
 1. O administrador configura a integração AD via `/admin/ad` — **mas isso só é acessível após um login**...
-2. ...o que novamente leva ao impasse da Opção B (precisa de um usuário local administrador primeiro).
+2. ...o que requer que o primeiro usuário já exista (via Opção A, B ou C).
 3. Ou seja, **para configurar o AD pela interface, é necessário já existir um usuário local administrador** — o AD não resolve o problema do primeiro acesso.
 
-**Resumo definitivo:** sem `AUTH_ADMIN_PASSWORD` definida e sem uso da CLI `create-user`, **uma instalação nova do SisPatrimônio Pro não permite nenhum login**. Não existe tela de "primeiro acesso" automática.
+**Resumo definitivo:** O SisPatrimônio Pro oferece **quatro formas** de criar o primeiro administrador:
+1. **Variável de ambiente** (`AUTH_ADMIN_PASSWORD`) — automático no start
+2. **Interface web de Primeiro Acesso** (`/setup`) — via navegador, resolve o impasse de instalações sem var de ambiente
+3. **CLI** (`python -m app.cli create-user`) — criação manual
+4. **AD** — só funciona se já existir um usuário local para acessar a configuração
+
+Sem nenhuma dessas formas, uma instalação nova não permite login. Agora, com a interface web de Primeiro Acesso, o impasse é resolvido para instalações sem `AUTH_ADMIN_PASSWORD`.
 
 ---
 
@@ -413,9 +493,13 @@ Todas as conclusões deste relatório são baseadas exclusivamente na leitura do
 - `app/services/ad_service.py`
 - `app/services/ad_ldap.py`
 - `app/api/deps.py`
+- `app/api/auth_api.py`
+- `app/api/v1_router.py`
 - `app/web/routes.py`
 - `app/web/admin_routes.py`
+- `app/web/help_routes.py`
 - `app/web/templates/login.html`
+- `app/web/templates/setup.html`
 - `app/web/templates/admin/ad/settings.html`
 - `app/models/user.py`
 - `app/models/session.py`
