@@ -296,6 +296,11 @@ def _upsert_ad_user(db: Session, settings: ADSettings, ad_user: ADUser, ip: Opti
     user.ad_object_guid = ad_user.guid or user.ad_object_guid
     user.ad_dn = ad_user.dn or user.ad_dn
     user.ad_last_sync = datetime.utcnow()
+    # Último acesso: login AD autorizado bem-sucedido registra o acesso no
+    # usuário do SisPatrimônio, da mesma forma que a autenticação local
+    # (auth_service.authenticate). Esse ponto só é alcançado após a
+    # autorização (grupo mapeado) — tentativas negadas não passam por aqui.
+    user.last_login = datetime.utcnow()
     if user.auth_provider != PROVIDER_AD:
         user.auth_provider = PROVIDER_AD
     db.commit()

@@ -107,6 +107,81 @@ def test_local_login_wrong_password_denied(_ad_db, unauth_client):
 
 
 # ============================================================================
+# ÚLTIMO ACESSO (last_login) — LOGIN AD
+# ============================================================================
+
+def test_ad_login_updates_last_login(_ad_db, unauth_client):
+    """Login AD autorizado atualiza last_login; novo login atualiza novamente."""
+    _enable_ad(_ad_db)
+    _map_group(_ad_db, "GRP-SISPAT-TECNICOS-TI", "Técnico de TI")
+
+    with _mock_ldap(_ad_user(groups=("GRP-SISPAT-TECNICOS-TI",))):
+        resp = unauth_client.post(
+            "/api/v1/auth/login", data={"username": "joao.silva", "password": "x12345678"}
+        )
+    assert resp.status_code == 200, resp.text
+
+    _ad_db.expire_all()
+    user = _ad_db.query(User).filter(User.username == "joao.silva").first()
+    primeiro = user.last_login
+    assert primeiro is not None
+
+    # Segundo login bem-sucedido → horário mais recente (B > A)
+    import time
+
+    time.sleep(0.01)
+    with _mock_ldap(_ad_user(groups=("GRP-SISPAT-TECNICOS-TI",))):
+        resp = unauth_client.post(
+            "/api/v1/auth/login", data={"username": "joao.silva", "password": "x12345678"}
+        )
+    assert resp.status_code == 200, resp.text
+
+    _ad_db.expire_all()
+    _ad_db.refresh(user)
+    assert user.last_login > primeiro
+
+
+def test_ad_wrong_password_keeps_last_login(_ad_db, unauth_client):
+    """Senha incorreta no AD não altera o last_login do usuário existente."""
+    _enable_ad(_ad_db)
+    _map_group(_ad_db, "GRP-SISPAT-TECNICOS-TI", "Técnico de TI")
+
+    with _mock_ldap(_ad_user(groups=("GRP-SISPAT-TECNICOS-TI",))):
+        unauth_client.post(
+            "/api/v1/auth/login", data={"username": "joao.silva", "password": "x12345678"}
+        )
+    _ad_db.expire_all()
+    user = _ad_db.query(User).filter(User.username == "joao.silva").first()
+    ultimo_acesso = user.last_login
+    assert ultimo_acesso is not None
+
+    # Senha errada (LDAP mockado retorna None = credencial inválida)
+    with _mock_ldap(None):
+        resp = unauth_client.post(
+            "/api/v1/auth/login", data={"username": "joao.silva", "password": "errada@123"}
+        )
+    assert resp.status_code == 401
+
+    _ad_db.expire_all()
+    _ad_db.refresh(user)
+    assert user.last_login == ultimo_acesso
+
+
+def test_ad_login_without_mapping_never_records_last_login(_ad_db, unauth_client):
+    """AD válido sem grupo mapeado: usuário não é criado e nada é registrado."""
+    _enable_ad(_ad_db)
+
+    with _mock_ldap(_ad_user(groups=())):
+        resp = unauth_client.post(
+            "/api/v1/auth/login", data={"username": "joao.silva", "password": "x12345678"}
+        )
+    assert resp.status_code == 401
+
+    _ad_db.expire_all()
+    assert _ad_db.query(User).filter(User.username == "joao.silva").first() is None
+
+
+# ============================================================================
 # LOGIN AD — SUCESSO, PROVISIONAMENTO E PERFIL
 # ============================================================================
 

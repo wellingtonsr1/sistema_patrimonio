@@ -194,6 +194,30 @@ def test_auth_service_behavior(db_session):
     assert authenticate(db_session, "", "") is None
 
 
+def test_failed_and_inactive_logins_do_not_update_last_login(db_session):
+    """Senha incorreta e usuário desativado NÃO alteram last_login."""
+    user = create_user(db_session, username="falhas", password="senha@1234")
+
+    # Senha incorreta: login recusado, último acesso inalterado (NULL)
+    assert authenticate(db_session, "falhas", "errada@123") is None
+    db_session.refresh(user)
+    assert user.last_login is None
+
+    # Usuário desativado com senha correta: recusado, último acesso inalterado
+    user.is_active = False
+    db_session.commit()
+    assert authenticate(db_session, "falhas", "senha@1234") is None
+    db_session.refresh(user)
+    assert user.last_login is None
+
+    # Reativado: login bem-sucedido registra o acesso
+    user.is_active = True
+    db_session.commit()
+    assert authenticate(db_session, "falhas", "senha@1234") is not None
+    db_session.refresh(user)
+    assert user.last_login is not None
+
+
 def test_create_user_validations(db_session):
     import pytest
 
