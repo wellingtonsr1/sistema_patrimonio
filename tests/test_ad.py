@@ -487,31 +487,54 @@ def test_search_service_account_returns_none_when_user_absent(_ad_db):
     assert ad_ldap._search_service_account(_fake_ad_settings(), conn, "joao.silva") is None
 
 
-@patch.dict(os.environ, {"AD_BIND_USER": "svc@empresa.local", "AD_BIND_PASSWORD": "svc-pass"})
 @patch.object(ad_ldap, "_connect", autospec=True)
 @patch.object(ad_ldap, "_search_service_account", autospec=True)
-def test_authenticate_ad_full_flow_with_service_bind(mock_search, mock_connect, _ad_db):
-    """Fluxo completo: busca via serviço → bind do usuário → grupos/atributos lidos."""
+def test_authenticate_ad_direct_user_bind_flow(mock_search, mock_connect, _ad_db):
+    """Fluxo sem conta de serviço: bind direto com a conta do usuário + busca na MESMA conexão."""
     adu = _ad_user(groups=("GRP-SISPAT-TECNICOS-TI",))
+    search_calls = []
 
     def _search_side_effect(settings, conn, username):
-        # Bind com o DN do usuário deve ter senha correta; caso contrário → None
-        if conn.user == adu.dn and conn.password != "Ad@Senha123":
-            return None
+        search_calls.append((conn.user, username))
         return adu
 
     mock_search.side_effect = _search_side_effect
 
     def _connect_side_effect(settings, user, pw):
-        # Simula o bind REAL: senha errada com o DN do usuário → bind recusado
-        if user == adu.dn and pw != "Ad@Senha123":
-            raise ad_ldap.ADError("credencial inválida")
+        # Simula o bind REAL: senha errada → LDAPBindError (credencial inválida)
+        if pw != "Ad@Senha123":
+            raise ad_ldap.LDAPBindError("invalid credentials")
         return SimpleNamespace(user=user, password=pw, unbind=lambda: None)
 
     mock_connect.side_effect = _connect_side_effect
 
     result = ad_ldap.authenticate_ad(_fake_ad_settings(), "joao.silva", "Ad@Senha123")
     assert result is not None and result.username == "joao.silva"
+    # Bind feito com o UPN derivado da Base DN (dc=test,dc=local → test.local)
+    assert search_calls[0][0] == "joao.silva@test.local"
+    # Busca usa a MESMA conexão autenticada, pelo sAMAccountName (sem domínio)
+    assert search_calls[0][1] == "joao.silva"
 
-    # Bind com senha errada → None (credencial inválida, sem exceção)
+    # Senha errada → None (credencial inválida), sem exceção e sem 503
     assert ad_ldap.authenticate_ad(_fake_ad_settings(), "joao.silva", "errada123") is None
+
+
+@patch.object(ad_ldap, "_connect", autospec=True)
+@patch.object(ad_ldap, "_search_service_account", autospec=True)
+def test_authenticate_ad_bind_ok_but_user_not_in_base_raises(mock_search, mock_connect, _ad_db):
+    """Bind válido mas usuário fora da base configurada → ADError (não é 'senha incorreta')."""
+    mock_search.return_value = None
+    mock_connect.side_effect = lambda s, u, p: SimpleNamespace(
+        user=u, password=p, unbind=lambda: None
+    )
+    with pytest.raises(ad_ldap.ADError):
+        ad_ldap.authenticate_ad(_fake_ad_settings(), "joao.silva", "Ad@Senha123")
+
+
+def test_normalize_username_variants(_ad_db):
+    """usuario → UPN da Base DN; UPN e DOMÍNIO\\sam permanecem intactos."""
+    s = _fake_ad_settings()
+    assert ad_ldap._normalize_username("joao.silva", s.base_dn) == "joao.silva@test.local"
+    assert ad_ldap._normalize_username("joao.silva@empresa.local", s.base_dn) == "joao.silva@empresa.local"
+    assert ad_ldap._normalize_username("EMPRESA\\joao.silva", s.base_dn) == "EMPRESA\\joao.silva"
+    assert ad_ldap._normalize_username("  joao.silva  ", s.base_dn) == "joao.silva@test.local"

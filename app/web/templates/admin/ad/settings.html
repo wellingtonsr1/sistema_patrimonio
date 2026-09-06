@@ -69,13 +69,11 @@
                     <input type="text" name="search_dn" class="form-control" placeholder="ou=usuarios,dc=empresa,dc=local" value="{{ settings.search_dn or '' }}">
                 </div>
                 <div class="col-12">
-                    <label class="form-label fw-semibold">Usuário de serviço (bind) <span class="text-muted fw-normal">(opcional)</span></label>
-                    <input type="text" name="bind_user" class="form-control" placeholder="CN=svc-sispat,CN=Users,dc=empresa,dc=local" value="{{ settings.bind_user or '' }}">
-                    <div class="form-text">
-                        A senha do serviço <strong>nunca</strong> é gravada no sistema:
-                        defina via variáveis de ambiente
-                        <code>AD_BIND_USER</code> ({{ 'definida' if bind_user_env else 'não definida' }}) e
-                        <code>AD_BIND_PASSWORD</code> ({{ 'definida' if bind_password_env else 'não definida' }}).
+                    <div class="form-text mb-2">
+                        <i class="bi bi-person-lock me-1"></i> Cada usuário autentica no AD com a
+                        <strong>própria conta e senha</strong> (formatos aceitos:
+                        <code>usuario</code>, <code>usuario@empresa.local</code> ou
+                        <code>EMPRESA\usuario</code>). Nenhuma conta de serviço é utilizada.
                     </div>
                 </div>
                 <div class="col-6 col-md-4">
@@ -186,6 +184,7 @@
             <div class="section-divider mb-3"><i class="bi bi-shield-check"></i> Segurança</div>
             <ul class="small text-muted mb-0 ps-3">
                 <li>A senha do usuário AD nunca é armazenada nem registrada em logs/auditoria.</li>
+                <li>Cada usuário autentica com a própria conta — não existe conta de serviço.</li>
                 <li>LDAPS com validação de certificado é o padrão recomendado.</li>
                 <li>Contas desabilitadas no AD não conseguem autenticar.</li>
                 <li>Usuários locais (ex: <code>admin</code>) continuam autenticando normalmente.</li>

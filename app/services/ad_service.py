@@ -14,8 +14,8 @@ A integração é uma EXTENSÃO da arquitetura existente — não a substitui:
   coexistir com atribuições manuais ('local'), que nunca são removidas.
 - Toda ação relevante é registrada na trilha de auditoria existente.
 
-Credenciais técnicas (AD_BIND_PASSWORD) vêm de variáveis de ambiente e nunca
-são persistidas no banco, logadas ou auditadas.
+Cada usuário autentica no AD com a própria conta/senha (bind direto, sem
+conta de serviço); nenhuma senha é persistida, logada ou auditada.
 """
 
 import logging
@@ -92,8 +92,8 @@ def _effective_settings(db: Session) -> ADSettings:
         settings.base_dn = config.AD_BASE_DN
     if not settings.search_dn:
         settings.search_dn = config.AD_USER_DN or None
-    if not settings.bind_user:
-        settings.bind_user = config.AD_BIND_USER or None
+    # bind_user: campo mantido no modelo por compatibilidade, mas sem função
+    # na autenticação (cada usuário autentica com a própria conta).
     if settings.use_ldaps is False and config.AD_USE_SSL:
         settings.use_ldaps = True
     return settings

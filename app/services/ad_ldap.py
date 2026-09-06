@@ -3,9 +3,10 @@ Camada de protocolo LDAP/LDAPS para Active Directory (Microsoft AD e Samba AD).
 
 Usa exclusivamente LDAP padrão (ldap3) — nenhum recurso proprietário:
 
-- Autenticação: busca do usuário por sAMAccountName (escopo configurável) e
-  simples bind com o DN encontrado. Funciona igualmente no Microsoft AD e no
-  Samba AD DC.
+- Autenticação: simples bind DIRETO com a conta do usuário informada no
+  login (UPN derivado da Base DN, UPN digitado ou DOMÍNIO\\sam). Atributos e
+  grupos são lidos na MESMA conexão autenticada. Sem conta de serviço.
+  Funciona igualmente no Microsoft AD e no Samba AD DC.
 - Atributos lidos (padronizados): sAMAccountName, mail, displayName/cn,
   objectGUID (binário → string canônica), userAccountControl (conta
   desabilitada) e memberOf (grupos).
@@ -28,7 +29,7 @@ from ldap3 import (
     Server,
     Tls,
 )
-from ldap3.core.exceptions import LDAPException
+from ldap3.core.exceptions import LDAPBindError, LDAPException
 
 from app.models.ad_settings import ADSettings
 
@@ -123,6 +124,11 @@ def _connect(settings: ADSettings, username: str, password: str) -> Connection:
             receive_timeout=settings.timeout_seconds or 10,
         )
         return conn
+    except LDAPBindError:
+        # Bind recusado pelo diretório (credencial inválida) é repropagado
+        # como está: o chamador distingue "senha errada" (401) de
+        # indisponibilidade (503). A mensagem nunca contém a senha.
+        raise
     except LDAPException as exc:
         raise ADError(f"Falha de conexão/bind LDAP: {exc}") from exc
     except Exception as exc:  # sockets, TLS, DNS...
@@ -130,7 +136,12 @@ def _connect(settings: ADSettings, username: str, password: str) -> Connection:
 
 
 def _search_service_account(settings: ADSettings, conn: Connection, username: str) -> Optional[ADUser]:
-    """Busca o usuário por sAMAccountName usando a conta de serviço (bind técnico)."""
+    """Busca o usuário por sAMAccountName usando a conexão já autenticada.
+
+    O nome vem da época em que a busca usava uma conta de serviço dedicada;
+    hoje recebe a própria conexão do usuário (bind direto). Mantida com o
+    mesmo nome/assinatura por compatibilidade com os chamadores existentes.
+    """
     search_base = settings.search_dn or settings.base_dn
     filtro = f"(&(objectClass=person)(sAMAccountName={_escape(username)}))"
     # ldap3.Connection.search() retorna bool (True = sucesso); usar conn.entries
@@ -147,45 +158,58 @@ def _search_service_account(settings: ADSettings, conn: Connection, username: st
         )
         return None
     for entry in conn.entries:
-        if _to_str(entry, "sAMAccountName") == username:
+        if (_to_str(entry, "sAMAccountName") or "").lower() == username.lower():
             return _entry_to_aduser(entry)
     return None
 
 
 def test_connection(settings: ADSettings) -> dict:
     """
-    Testa a conexão com o servidor AD (usado pela tela Integração AD).
-    Usa a conta de serviço das variáveis de ambiente (AD_BIND_USER/PASSWORD),
-    quando configurada; sem bind account, valida apenas a abertura da conexão.
-    Nunca retorna nem registra a senha.
-    """
-    import os
+    Testa a conectividade com o servidor AD (usado pela tela Integração AD).
 
+    Valida: resolução do host, abertura da conexão (TCP/TLS) e leitura do
+    RootDSE. NÃO usa conta de serviço: cada usuário autentica com a própria
+    conta/senha no login. Nunca retorna nem registra credenciais.
+    """
     result = {"ok": False, "message": "", "server_info": ""}
     if not settings.server or not settings.base_dn:
         result["message"] = "Servidor e Base DN são obrigatórios."
         return result
     try:
         server = _build_server(settings)
-        bind_user = os.getenv("AD_BIND_USER", "").strip()
-        bind_pass = os.getenv("AD_BIND_PASSWORD", "")
-        if bind_user:
-            conn = Connection(
-                server, user=bind_user, password=bind_pass,
-                authentication=SIMPLE, auto_bind=True,
-                receive_timeout=settings.timeout_seconds or 10,
+        # Sem bind: valida handshake TCP/TLS e tenta ler o RootDSE (get_info=ALL
+        # faz a leitura no open()). Servidores que bloqueiam leitura anônima do
+        # diretório NÃO falham o teste — conectividade é o que está sendo testado.
+        conn = Connection(server, auto_bind=False)
+        conn.open()
+        try:
+            info = getattr(conn, "info", None)
+            naming = list(getattr(info, "naming_contexts", None) or []) if info else []
+        finally:
+            conn.unbind()
+        base_ok = any(
+            (n or "").strip().lower() == settings.base_dn.strip().lower()
+            for n in naming
+        ) if naming else None  # None = servidor não expõe naming contexts anonimamente
+        if base_ok is True:
+            result["message"] = (
+                "Conectividade OK: servidor acessível e Base DN confirmada "
+                "(cada usuário autentica com a própria conta no login)."
             )
-            who = conn.extend.standard.who_am_i()
-            conn.unbind()
-            result["ok"] = True
-            result["message"] = f"Conexão estabelecida e bind validado ({who or bind_user})."
+        elif base_ok is False:
+            result["message"] = (
+                "Servidor acessível, porém a Base DN informada não foi exposta "
+                "pelo diretório — confira o valor digitado."
+            )
+            result["server_info"] = f"{settings.server}:{settings.port} ({'LDAPS' if settings.use_ldaps else 'LDAP'})"
+            return result
         else:
-            # Sem conta de serviço: valida handshake TCP/TLS
-            conn = Connection(server, auto_bind=False)
-            conn.open()
-            result["ok"] = True
-            result["message"] = "Conexão com o servidor estabelecida (sem bind de serviço)."
-            conn.unbind()
+            result["message"] = (
+                "Conectividade OK: servidor acessível (leitura anônima do "
+                "diretório não permitida). Cada usuário autentica com a "
+                "própria conta no login."
+            )
+        result["ok"] = True
         result["server_info"] = f"{settings.server}:{settings.port} ({'LDAPS' if settings.use_ldaps else 'LDAP'})"
         return result
     except Exception as exc:
@@ -248,67 +272,66 @@ def _extract_common_name(dn: str) -> str:
     return dn or ""
 
 
+def _normalize_username(username: str, base_dn: str) -> str:
+    """Normaliza o nome de usuário para o bind direto no AD (sem inventar formatos).
+
+    - ``usuario``                    → ``usuario@dominio`` (UPN derivado da Base DN)
+    - ``usuario@empresa.local``      → mantido (UPN explícito)
+    - ``EMPRESA\\usuario``           → mantido (formato DOMAIN\\sam aceito pelo bind SIMPLE)
+
+    O UPN derivado usa a Base DN configurada (DC=empresa,DC=local →
+    empresa.local), que é o domínio do controlador consultado.
+    """
+    username = (username or "").strip()
+    if "@" in username or "\\" in username:
+        return username  # já é UPN ou DOMAIN\sam: não transforma
+    domain = ".".join(
+        part[3:] for part in (base_dn or "").split(",")
+        if part.strip().lower().startswith("dc=")
+    )
+    return f"{username}@{domain}" if domain else username
+
+
 def authenticate_ad(settings: ADSettings, username: str, password: str) -> Optional[ADUser]:
     """
-    Autentica no AD e retorna os atributos do usuário (com grupos) em caso de
-    sucesso. Retorna None para credenciais inválidas. Levanta ADError quando
-    o diretório está indisponível ou mal configurado.
+    Autentica no AD com a PRÓPRIA CONTA do usuário (sem conta de serviço).
 
-    Fluxo: bind de serviço (se configurado) → busca por sAMAccountName →
-    simples bind com o DN do usuário (verifica a senha) → rebind de serviço
-    para ler memberOf completo.
+    Fluxo: bind SIMPLE direto com o usuário informado (UPN derivado da Base DN,
+    UPN digitado ou DOMÍNIO\\sam) + senha → mesma conexão autenticada busca os
+    próprios atributos/grupos → ADUser. Retorna None para credenciais
+    inválidas (bind recusado). Levanta ADError quando o diretório está
+    indisponível ou mal configurado.
     """
     username = (username or "").strip()
     if not username or not password:
         return None
 
-    import os
-    bind_user = os.getenv("AD_BIND_USER", "").strip()
-    bind_pass = os.getenv("AD_BIND_PASSWORD", "")
+    bind_principal = _normalize_username(username, settings.base_dn)
+    try:
+        conn = _connect(settings, bind_principal, password)
+    except LDAPBindError:
+        # Bind recusado pelo diretório = credencial inválida (não é 503)
+        logger.info("Bind AD recusado para o usuário informado (credencial inválida).")
+        return None
 
-    # 1) Busca do usuário (requer bind técnico quando o diretório não é anônimo)
     try:
-        conn = _connect(settings, bind_user, bind_pass)
-    except ADError:
-        raise
-    try:
-        user = _search_service_account(settings, conn, username)
+        # Atributos e grupos lidos NA MESMA conexão autenticada do usuário.
+        # SAM exato primeiro; se o usuário digitou UPN/DOMÍNIO\\sam, procura pelo
+        # sAMAccountName correspondente.
+        sam = username.split("@", 1)[0].split("\\")[-1]
+        user = _search_service_account(settings, conn, sam)
         if user is None:
-            # Usuário não existe no AD — NÃO tentar bind anônimo com DN inventado
-            return None
-        user_dn = user.dn
-    finally:
-        try:
-            conn.unbind()
-        except Exception:
-            pass
-
-    # 2) Verificação da senha: simples bind com o DN do usuário
-    try:
-        user_conn = _connect(settings, user_dn, password)
-    except ADError:
-        return None  # credencial inválida (bind recusado)
-    try:
-        # 3) Rebind de serviço para reler atributos/grupos com a conta de serviço
-        if bind_user:
-            try:
-                svc_conn = _connect(settings, bind_user, bind_pass)
-                try:
-                    reloaded = _search_service_account(settings, svc_conn, username)
-                    if reloaded is not None:
-                        user = reloaded
-                finally:
-                    try:
-                        svc_conn.unbind()
-                    except Exception:
-                        pass
-            except ADError:
-                pass  # usa os atributos já coletados
-        user.enabled = user.enabled  # (já calculado na busca)
+            # Bind OK mas busca sem resultado: conta existe, porém não é
+            # visível na base configurada (ex.: base/OU incorreta) — não é
+            # "senha incorreta" nem indisponibilidade.
+            raise ADError(
+                "Conta autenticada no AD, mas não localizada na base configurada "
+                "(verifique Base DN / DN de busca de usuários)."
+            )
         return user
     finally:
         try:
-            user_conn.unbind()
+            conn.unbind()
         except Exception:
             pass
 

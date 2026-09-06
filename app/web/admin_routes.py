@@ -647,8 +647,6 @@ def admin_ad_page(request: Request, error: Optional[str] = None, success: Option
             "roles": permission_service.get_all_roles(db),
             "error": error or "",
             "success": success or "",
-            "bind_user_env": bool(os.getenv("AD_BIND_USER")),
-            "bind_password_env": bool(os.getenv("AD_BIND_PASSWORD")),
             "active_tab": "admin",
         },
     )

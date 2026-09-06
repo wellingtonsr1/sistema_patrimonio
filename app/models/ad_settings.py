@@ -8,8 +8,8 @@ class ADSettings(Base):
     Configuração da integração com Active Directory / Samba AD (singleton id=1).
 
     Armazena em banco apenas os parâmetros NÃO sensíveis da conexão e o
-    comportamento do provisionamento. A senha do usuário de serviço (bind)
-    NUNCA é gravada no banco — vem de variáveis de ambiente (AD_BIND_PASSWORD).
+    comportamento do provisionamento. Cada usuário autentica no AD com a
+    própria conta/senha (bind direto) — nenhuma senha é gravada no banco.
 
     Prioridade: se existir linha no banco (enable_ad marcado), o administrador
     usa a tela Integração AD; as variáveis de ambiente AD_* continuam
@@ -27,7 +27,7 @@ class ADSettings(Base):
     verify_tls = Column(Boolean, default=True, nullable=False)       # validar certificado TLS
     base_dn = Column(String(255), nullable=False, default="")
     search_dn = Column(String(255), nullable=True)                   # escopo da busca de usuários (ou None = base_dn)
-    bind_user = Column(String(255), nullable=True)                   # DN/upn do usuário de serviço (consulta)
+    bind_user = Column(String(255), nullable=True)                   # legado; sem função na autenticação (bind direto do usuário)
     timeout_seconds = Column(Integer, nullable=False, default=10)
 
     # --- Provisionamento / vínculo ---
