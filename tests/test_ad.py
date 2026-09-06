@@ -426,7 +426,7 @@ def _make_entry(sam, mail=None, display=None, guid=None, uac=512, groups=()):
         "displayName": SimpleNamespace(value=display),
         "cn": SimpleNamespace(value=display or sam),
         "distinguishedName": SimpleNamespace(value=f"CN={display or sam},DC=test,DC=local"),
-        "objectGUID": SimpleNamespace(value=guid, raw_value=guid),
+        "objectGUID": SimpleNamespace(value=guid, raw_values=[guid] if guid is not None else []),
         "userAccountControl": SimpleNamespace(value=uac),
         "memberOf": SimpleNamespace(values=list(groups)),
     })

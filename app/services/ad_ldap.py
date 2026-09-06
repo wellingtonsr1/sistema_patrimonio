@@ -138,6 +138,13 @@ def _search_service_account(settings: ADSettings, conn: Connection, username: st
         search_base, filtro, search_scope=SUBTREE, attributes=_USER_ATTRS
     )
     if not ok:
+        # Log seguro (sem credenciais) para distinguir "usuário não encontrado"
+        # de falha operacional da busca (ex.: base DN inexistente/incorreta).
+        _res = getattr(conn, "result", None) or {}
+        logger.warning(
+            "Busca LDAP sem resultado para usuário '%s' em %s: %s (%s)",
+            username, search_base, _res.get("description"), _res.get("message"),
+        )
         return None
     for entry in conn.entries:
         if _to_str(entry, "sAMAccountName") == username:
@@ -215,12 +222,18 @@ def _entry_to_aduser(entry) -> ADUser:
         member_of = [str(g) for g in raw]
     except Exception:
         pass
+    # objectGUID: ldap3 expõe os bytes crus em raw_values (lista); .value pode
+    # vir formatado como string quando o schema foi lido (get_info=ALL).
+    _guid_raw = None
+    if "objectGUID" in entry:
+        _attr = entry["objectGUID"]
+        _guid_raw = _attr.raw_values[0] if getattr(_attr, "raw_values", None) else _attr.value
     return ADUser(
         username=_to_str(entry, "sAMAccountName") or "",
         display_name=_to_str(entry, "displayName") or _to_str(entry, "cn"),
         email=_to_str(entry, "mail"),
         dn=_to_str(entry, "distinguishedName"),
-        guid=_canonical_guid(entry["objectGUID"].raw_value if "objectGUID" in entry else None),
+        guid=_canonical_guid(_guid_raw),
         enabled=(uac_int & UAC_DISABLED_BIT) == 0,
         groups=member_of,
     )
