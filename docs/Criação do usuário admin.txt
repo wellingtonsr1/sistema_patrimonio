@@ -1,8 +1,3 @@
-*** Banco já usado ***
-Login: admin
-Senha: SuaSenha@123
-
-
 - Caso seja uma nova instalação:
 
 *** Pelo CLI ***

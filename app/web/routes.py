@@ -26,8 +26,16 @@ from app.services.maintenance_service import MaintenanceService
 from app.services.dashboard_service import DashboardService
 from app.services.report_service import ReportService
 from app.api.deps import _client_ip, get_current_user, require_permission
+from app.config import AUTH_ADMIN_PASSWORD
+from app.models.user import User
+from app.models.user_role import UserRole
 from app.services.auth_provider import resolve_authentication
-from app.services.auth_service import AccountLockedError
+from app.services.auth_service import AccountLockedError, create_user
+from app.services.permission_service import (
+    ensure_default_roles,
+    get_role_by_name,
+    assign_role,
+)
 from app.services.ad_service import (
     ADAuthenticationError,
     ADNoProfileError,
@@ -1136,3 +1144,141 @@ def view_custodians_report(request: Request, db: Session = Depends(get_db)):
             "active_tab": "reports"
         }
     )
+
+
+# ============================================================================
+# PRIMEIRO ACESSO / CONFIGURAÇÃO INICIAL (somente instalação nova)
+# ============================================================================
+
+def _first_access_enabled(db: Session) -> bool:
+    """
+    O fluxo de primeiro acesso só é ativado quando:
+    - AUTH_ADMIN_PASSWORD não está configurada (o bootstrap por variável de
+      ambiente não será preparado), E
+    - ainda não existe nenhum usuário no banco.
+
+    Essa verificação é feita dentro da própria requisição, com a sessão do
+    request, e a criação posterior ocorre no mesmo request/commit — o que
+    impede que duas requisições concorrentes criem dois administradores
+    (SQLite serializa escritas e a checagem + INSERT acontecem no mesmo
+    commit; a segunda requisição verá o usuário já existente).
+    """
+    if AUTH_ADMIN_PASSWORD:
+        return False
+    return db.query(User).first() is None
+
+
+@web_router.get("/setup", response_class=HTMLResponse)
+def first_access_page(
+    request: Request, db: Session = Depends(get_db)
+):
+    """Tela de configuração inicial. Só visível em instalação nova."""
+    if not _first_access_enabled(db):
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+    return templates.TemplateResponse(
+        request=request,
+        name="setup.html",
+        context={"error": ""},
+    )
+
+
+@web_router.post("/setup", response_class=HTMLResponse)
+def first_access_submit(
+    request: Request,
+    full_name: str = Form(""),
+    username: str = Form(""),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    email: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    """Processa a criação do primeiro administrador."""
+    ip = _client_ip(request)
+
+    # Revisa se a instalação ainda está em primeiro acesso (idempotente e
+    # seguro contra condição de corrida: se outro request já criou o usuário,
+    # redireciona para o login).
+    if not _first_access_enabled(db):
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    username = (username or "").strip()
+    full_name = (full_name or "").strip()
+    email = (email or "").strip()
+
+    if not username:
+        return templates.TemplateResponse(
+            request=request,
+            name="setup.html",
+            context={"error": "O nome de usuário não pode ser vazio."},
+        )
+    if not password or len(password) < 8:
+        return templates.TemplateResponse(
+            request=request,
+            name="setup.html",
+            context={"error": "A senha deve ter no mínimo 8 caracteres."},
+        )
+    if password != confirm_password:
+        return templates.TemplateResponse(
+            request=request,
+            name="setup.html",
+            context={"error": "As senhas não coincidem."},
+        )
+
+    try:
+        admin = create_user(
+            db,
+            username=username,
+            password=password,
+            full_name=full_name or None,
+            email=email or None,
+            is_admin=True,
+        )
+    except ValueError as err:
+        return templates.TemplateResponse(
+            request=request,
+            name="setup.html",
+            context={"error": str(err)},
+        )
+
+    # Garante catálogo de permissões e o perfil Administrador (idempotente)
+    ensure_default_roles(db)
+
+    # Vincula o perfil Administrador ao novo usuário, se ainda não estiver
+    # vinculado (garante que o administrador tem as permissões esperadas).
+    admin_role = get_role_by_name(db, "Administrador")
+    if admin_role:
+        role_assigned = (
+            db.query(UserRole)
+            .filter(UserRole.user_id == admin.id, UserRole.role_id == admin_role.id)
+            .first()
+        )
+        if not role_assigned:
+            assign_role(db, admin, admin_role)
+
+    # Auditoria de criação — NUNCA registra senha, hash ou credencial.
+    write_audit(
+        db,
+        user=admin,
+        action=ACTION_CREATE,
+        module="Usuários",
+        resource="User",
+        resource_ref=admin.username,
+        resource_id=admin.id,
+        ip_address=ip,
+        result=RESULT_SUCCESS,
+        description="Primeiro administrador criado no primeiro acesso",
+        new_data={
+            "username": admin.username,
+            "full_name": admin.full_name,
+            "email": admin.email,
+            "is_admin": True,
+        },
+    )
+
+    logger.info(
+        "Primeiro administrador criado via setup: username=%s, ip=%s",
+        admin.username,
+        ip,
+    )
+
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)

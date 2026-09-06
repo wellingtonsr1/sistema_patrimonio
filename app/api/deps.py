@@ -20,7 +20,7 @@ from app.services.session_service import get_session_user
 
 # Caminhos web públicos (não exigem login). O /static é servido à parte
 # (mount no app) e não passa por este roteador.
-PUBLIC_WEB_PATHS = {"/login", "/logout"}
+PUBLIC_WEB_PATHS = {"/login", "/logout", "/setup"}
 
 
 def get_current_user(
