@@ -7,9 +7,11 @@ A integração é uma EXTENSÃO da arquitetura existente — não a substitui:
   continua sendo 100% do SisPatrimônio.
 - Mapeamento: Grupo AD → Perfil EXISTENTE (tabela ad_group_roles). Nunca há
   permissões diretas do AD.
-- Provisionamento: no primeiro login AD cria apenas o usuário do sistema
+- Provisionamento: SOMENTE após confirmar grupo AD autorizado/mapeado. No
+  primeiro login autorizado cria apenas o usuário do sistema
   (users.auth_provider='ad') e o vínculo com o colaborador existente
-  (custodians) por e-mail — nunca duplica colaborador.
+  (custodians) por e-mail — nunca duplica colaborador. Usuário do domínio
+  sem grupo mapeado NÃO é criado no banco (apenas auditado e acesso negado).
 - Perfis atribuídos via AD são marcados em user_roles.assigned_by='ad' para
   coexistir com atribuições manuais ('local'), que nunca são removidas.
 - Toda ação relevante é registrada na trilha de auditoria existente.
@@ -255,8 +257,27 @@ def _upsert_ad_user(db: Session, settings: ADSettings, ad_user: ADUser, ip: Opti
     created = False
     if user is None:
         if not settings.auto_create_user:
+            # Conta inexistente e provisionamento desabilitado: acesso negado.
+            # Auditoria obrigatória (toda tentativa AD deve ser registrada);
+            # usuário NÃO é criado. Mensagem genérica ao usuário final.
+            write_audit(
+                db, user=None, username=ad_user.username,
+                action=ACTION_AD_NO_MAPPING, module="Integração AD", resource="Login",
+                resource_ref=ad_user.username, ip_address=ip, result=RESULT_DENIED,
+                new_data={
+                    "nome": ad_user.display_name,
+                    "identificador_ad": ad_user.guid,
+                    "grupos": ad_ldap.get_user_groups(settings, ad_user),
+                    "motivo": "PROVISIONAMENTO_DESABILITADO",
+                },
+                description=(
+                    f"Login AD autorizado por grupo mapeado para {ad_user.username}, "
+                    "porém o provisionamento automático está desabilitado e a conta "
+                    "não existe no SisPatrimônio; acesso negado e nenhum usuário criado."
+                ),
+            )
             raise ADNoProfileError(
-                "Provisionamento automático desabilitado e usuário inexistente."
+                "Seu usuário foi autenticado, mas não possui acesso ao SisPatrimônio."
             )
         user = User(
             username=ad_user.username,
@@ -321,9 +342,13 @@ def authenticate_and_sync(db: Session, username: str, password: str, ip: Optiona
 
     1. autentica no AD (senha NUNCA persistida/logada);
     2. valida status da conta (desabilitada → negado, conforme política);
-    3. obtém grupos e resolve o perfil pelo mapeamento Grupo→Perfil;
-    4. provisiona/atualiza o usuário e vincula ao colaborador existente;
-    5. sincroniza o perfil (assigned_by='ad') preservando os manuais;
+    3. obtém grupos e resolve o perfil pelo mapeamento Grupo→Perfil ANTES de
+       qualquer provisionamento (a autenticação AD NÃO concede acesso);
+    4. sem grupo autorizado/mapeado → NÃO cria usuário, colaborador, perfil,
+       permissões ou sessão: registra SOMENTE na auditoria e nega o acesso;
+    5. autorizado → provisiona/atualiza o usuário, vincula o colaborador
+       existente e aplica o perfil EXISTENTE (assigned_by='ad'), preservando
+       os perfis manuais;
     6. registra auditoria e retorna o User para a sessão normal do sistema.
 
     Levanta ADAuthenticationError / ADError->ADUnavailableError /
@@ -364,9 +389,38 @@ def authenticate_and_sync(db: Session, username: str, password: str, ip: Optiona
         )
         raise ADAuthenticationError("Sua conta do Active Directory está desabilitada.")
 
-    # Grupos → perfil (determinístico)
+    # Grupos → perfil (determinístico) — resolvido ANTES de provisionar:
+    # autenticar no AD NÃO concede acesso; apenas um grupo explicitamente
+    # autorizado/mapeado para um perfil EXISTENTE o concede.
     group_names = ad_ldap.get_user_groups(settings, ad_user)
     role_id, winner_group, matched = resolve_role_for_groups(db, ad_user.groups)
+
+    if role_id is None:
+        # Usuário do domínio com conta AD válida, porém SEM grupo autorizado:
+        # NÃO criar usuário no SisPatrimônio, NÃO criar colaborador/perfil/
+        # permissões/sessão — apenas registrar a tentativa na auditoria.
+        write_audit(
+            db, user=None, username=ad_user.username,
+            action=ACTION_AD_NO_MAPPING, module="Integração AD", resource="Login",
+            resource_ref=ad_user.username, ip_address=ip, result=RESULT_DENIED,
+            new_data={
+                "nome": ad_user.display_name,
+                "identificador_ad": ad_user.guid,
+                "grupos": group_names,
+                "grupos_autorizados": "NENHUM",
+                "perfil": "NENHUM",
+                "motivo": "NENHUM_GRUPO_AD_MAPEADO",
+            },
+            description=(
+                f"Autenticação AD bem-sucedida para {ad_user.username}, porém sem grupo "
+                "autorizado/mapeado; acesso negado e nenhum usuário criado no SisPatrimônio."
+            ),
+        )
+        raise ADNoProfileError(
+            "Seu usuário foi autenticado, mas não possui um perfil autorizado no SisPatrimônio."
+        )
+
+    # Autorizado: provisiona/atualiza o usuário e vincula o colaborador existente.
     user = _upsert_ad_user(db, settings, ad_user, ip)
     _link_custodian(db, user, ad_user, ip)
 
@@ -378,20 +432,24 @@ def authenticate_and_sync(db: Session, username: str, password: str, ip: Optiona
         description=f"Grupos AD identificados: {', '.join(group_names) if group_names else '(nenhum)'}",
     )
 
-    if role_id is None:
-        write_audit(
-            db, user=user,
-            action=ACTION_AD_NO_MAPPING, module="Integração AD", resource="Login",
-            resource_ref=user.username, ip_address=ip, result=RESULT_DENIED,
-            new_data={"grupos": group_names},
-            description="Autenticado no AD, mas sem grupo mapeado para perfil do sistema.",
-        )
-        raise ADNoProfileError(
-            "Seu usuário foi autenticado, mas não possui um perfil autorizado no SisPatrimônio."
-        )
-
     assigned, previous_role = _assign_ad_role(db, user, role_id, winner_group)
     role = get_role_by_id(db, role_id)
+
+    write_audit(
+        db, user=user,
+        action=ACTION_AD_LOGIN_AUTHORIZED, module="Integração AD", resource="Login",
+        resource_ref=user.username, ip_address=ip, result=RESULT_SUCCESS,
+        new_data={
+            "grupos": group_names,
+            "grupo_autorizado": winner_group,
+            "perfil": role.name if role else str(role_id),
+        },
+        description=(
+            f"Login AD autorizado para {user.username} — grupo '{winner_group}' mapeado "
+            f"para o perfil '{role.name if role else role_id}'."
+        ),
+    )
+
     if assigned:
         write_audit(
             db, user=user,
@@ -423,6 +481,7 @@ from app.services.audit_service import (  # noqa: E402
     ACTION_AD_CUSTODIAN_LINKED,
     ACTION_AD_GROUP_SYNC,
     ACTION_AD_LOGIN,
+    ACTION_AD_LOGIN_AUTHORIZED,
     ACTION_AD_LOGIN_FAILED,
     ACTION_AD_NO_MAPPING,
     ACTION_AD_PROVISIONED,

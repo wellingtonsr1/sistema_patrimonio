@@ -239,28 +239,38 @@ Rebind de serviço → leitura de atributos e memberOf (grupos)
    ↓
 Conta desabilitada no AD (userAccountControl)? → ACESSO NEGADO
    ↓
-Provisionamento/atualização do usuário local (guid, DN, e-mail, nome)
-   ↓
 Mapeamento Grupo AD → Perfil (prioridade determinística)
+   ↓
+Sem grupo autorizado/mapeado? → ACESSO NEGADO — somente auditoria
+   (usuário NÃO é criado no SisPatrimônio)
+   ↓
+Provisionamento/atualização do usuário local (guid, DN, e-mail, nome)
    ↓
 Perfil atribuído (assigned_by='ad'; perfis manuais preservados)
    ↓
 Sessão criada → acesso ao sistema (RBAC interno)
 ```
 
-> **Dois binds distintos**: o bind da conta de serviço só **pesquisa** o
-> usuário; a senha é validada sempre por um **segundo bind** usando o DN
-> encontrado + a senha digitada no login.
+> **A autenticação AD NÃO concede acesso.** O acesso só é concedido a
+> usuários pertencentes a grupos AD explicitamente autorizados e mapeados
+> para perfis existentes. Usuários do domínio sem grupo mapeado têm acesso
+> negado e NÃO recebem usuário, colaborador, perfil ou permissões — apenas a
+> tentativa é registrada na auditoria.
+
+> **Bind direto do usuário**: cada usuário autentica no AD com a própria
+> conta/senha (UPN derivado da Base DN, UPN digitado ou `DOMÍNIO\\sam`) —
+> sem conta de serviço. Atributos e grupos (`memberOf`) são lidos na MESMA
+> conexão autenticada. A senha nunca é persistida, logada ou auditada.
 
 ### Comportamentos garantidos pelo código
 
 - **Login híbrido**: contas locais (ex: `admin`) continuam autenticando como antes; contas `auth_provider='ad'` autenticam sempre no diretório (nunca por senha local).
-- **Provisionamento no 1º login**: cria o usuário do sistema e o vincula ao **colaborador existente** por e-mail/matrícula (nunca duplica cadastro). Usuários do AD não sobrescrevem dados patrimoniais do colaborador (matrícula, CPF, cargo, setor).
-- **Sem perfil mapeado**: o usuário é autenticado no AD, porém **não recebe acesso** — mensagem específica ("autenticado, mas não possui um perfil autorizado"), distinta de credencial inválida.
+- **Provisionamento no 1º login**: apenas após confirmar **grupo AD autorizado/mapeado** — cria o usuário do sistema e o vincula ao **colaborador existente** por e-mail/matrícula (nunca duplica cadastro). Usuários do AD não sobrescrevem dados patrimoniais do colaborador (matrícula, CPF, cargo, setor).
+- **Sem perfil mapeado**: o usuário é autenticado no AD, porém **não recebe acesso** — mensagem específica ("autenticado, mas não possui um perfil autorizado"), distinta de credencial inválida. **Nenhum usuário/colaborador é criado no banco**; apenas a tentativa fica na auditoria (`GRUPO_AD_SEM_MAPEAMENTO`).
 - **Conta desabilitada no AD**: login negado (`userAccountControl`, bit ACCOUNTDISABLE), com histórico/colaborador preservados.
 - **Erros diferenciados**: AD indisponível (503), credencial inválida (401), conta desabilitada (401) e falta de perfil (401) têm mensagens e tratamentos próprios.
 - **Segurança**: senha do usuário AD nunca é armazenada/logada; a senha da conta de serviço existe somente em variáveis de ambiente (`AD_BIND_PASSWORD`); timeout obrigatório em todas as operações; nenhuma credencial vai para logs ou auditoria.
-- **Auditoria**: eventos próprios na trilha existente (`LOGIN_AD`, `LOGIN_AD_FALHA`, `CONTA_AD_DESABILITADA`, `USUARIO_AD_PROVISIONADO`, `USUARIO_AD_VINCULADO_COLABORADOR`, `GRUPOS_AD_IDENTIFICADOS`, `GRUPO_AD_SEM_MAPEAMENTO`, `CONFLITO_GRUPOS_AD`, `PERFIL_SINCRONIZADO_AD`, `FALHA_COMUNICACAO_AD`, `ALTERACAO_CONFIG_AD`, `TESTE_CONEXAO_AD`) — sem credenciais.
+- **Auditoria**: eventos próprios na trilha existente (`LOGIN_AD_AUTORIZADO`, `LOGIN_AD`, `LOGIN_AD_FALHA`, `CONTA_AD_DESABILITADA`, `USUARIO_AD_PROVISIONADO`, `USUARIO_AD_VINCULADO_COLABORADOR`, `GRUPOS_AD_IDENTIFICADOS`, `GRUPO_AD_SEM_MAPEAMENTO`, `CONFLITO_GRUPOS_AD`, `PERFIL_SINCRONIZADO_AD`, `FALHA_COMUNICACAO_AD`, `ALTERACAO_CONFIG_AD`, `TESTE_CONEXAO_AD`) — sem credenciais.
 
 ### Como ativar
 
@@ -299,7 +309,7 @@ Variáveis de ambiente suportadas (fallback/valor inicial dos campos da tela):
 - Armazenado na tabela `ad_group_roles` (grupo único → perfil existente + prioridade).
 - **Usuário em vários grupos mapeados**: vence a **menor prioridade numérica** (1 = maior). Opcionalmente, o campo `group_role_priority` da tela (CSV de nomes de grupos, em ordem) sobrepõe a prioridade numérica.
 - **Sincronização**: perfis atribuídos via AD são marcados `assigned_by='ad'` e substituídos a cada login conforme os grupos atuais; perfis atribuídos **manualmente** (`assigned_by='local'`) **nunca são removidos** pela sincronização.
-- **Sem mapeamento**: autentica no AD, mas não recebe acesso (auditoria `GRUPO_AD_SEM_MAPEAMENTO`).
+- **Sem mapeamento**: autentica no AD, mas não recebe acesso — **nenhum usuário é criado no SisPatrimônio** (auditoria `GRUPO_AD_SEM_MAPEAMENTO` com os grupos identificados).
 
 ### LDAPS
 

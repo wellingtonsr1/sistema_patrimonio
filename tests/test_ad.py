@@ -216,18 +216,52 @@ def test_ad_disabled_account_denied(_ad_db, unauth_client):
     assert resp.status_code == 401
     assert "desabilitada" in resp.json()["detail"].lower()
     assert _ad_db.query(User).filter(User.username == "joao.silva").first() is None
+    # Conta AD desabilitada → acesso negado e auditoria registrada
+    logs = get_audit_logs(_ad_db, action=ad_service.ACTION_AD_ACCOUNT_DISABLED)
+    assert len(logs) == 1
+    assert logs[0].result == "DENIED"
+    assert logs[0].user_id is None
 
 
 def test_ad_unmapped_group_denied(_ad_db, unauth_client):
+    """AD válido + nenhum grupo autorizado → acesso negado SEM criar usuário."""
     _enable_ad(_ad_db)
     with _mock_ldap(_ad_user(groups=("GRP-WIFI", "GRP-USUARIOS-DOMINIO"))):
         resp = unauth_client.post("/api/v1/auth/login", data={"username": "joao.silva", "password": "x12345678"})
     assert resp.status_code == 401
-    # Usuário pode ter sido provisionado, mas não recebe perfil nem sessão
+    # NÃO criar usuário, colaborador, perfil, permissões ou sessão
     _ad_db.expire_all()
-    user = _ad_db.query(User).filter(User.username == "joao.silva").first()
-    if user is not None:
-        assert get_user_role_names(_ad_db, user) == []
+    assert _ad_db.query(User).filter(User.username == "joao.silva").first() is None
+    assert _ad_db.query(Custodian).count() == 0
+    # A tentativa é registrada SOMENTE na auditoria, com os grupos identificados
+    logs = get_audit_logs(_ad_db, action=ad_service.ACTION_AD_NO_MAPPING)
+    assert len(logs) == 1
+    assert logs[0].result == "DENIED"
+    assert logs[0].user_id is None  # sem usuário vinculado (não foi criado)
+    assert logs[0].username == "joao.silva"
+    assert "GRP-WIFI" in (logs[0].new_data or "")
+    assert "GRP-USUARIOS-DOMINIO" in (logs[0].new_data or "")
+    assert "NENHUM_GRUPO_AD_MAPEADO" in (logs[0].new_data or "")
+
+
+def test_ad_auto_create_disabled_denies_without_creating_user(_ad_db, unauth_client):
+    """Grupo mapeado, mas provisionamento desabilitado e conta inexistente:
+    acesso negado, NENHUM usuário criado e tentativa registrada na auditoria."""
+    _enable_ad(_ad_db)
+    _map_group(_ad_db, "GRP-SISPAT-TECNICOS-TI", "Técnico de TI")
+    ad_service.get_ad_settings(_ad_db).auto_create_user = False
+    _ad_db.commit()
+
+    with _mock_ldap(_ad_user(groups=("GRP-SISPAT-TECNICOS-TI",))):
+        resp = unauth_client.post("/api/v1/auth/login", data={"username": "joao.silva", "password": "x12345678"})
+    assert resp.status_code == 401
+    _ad_db.expire_all()
+    assert _ad_db.query(User).filter(User.username == "joao.silva").first() is None
+    assert _ad_db.query(Custodian).count() == 0
+    logs = get_audit_logs(_ad_db, action=ad_service.ACTION_AD_NO_MAPPING)
+    assert len(logs) == 1
+    assert logs[0].result == "DENIED"
+    assert "PROVISIONAMENTO_DESABILITADO" in (logs[0].new_data or "")
 
 
 def test_ad_unavailable_returns_503(_ad_db, unauth_client):
@@ -276,6 +310,19 @@ def test_ad_links_existing_custodian_without_duplication(_ad_db, unauth_client):
     linked = get_audit_logs(_ad_db, action=ad_service.ACTION_AD_CUSTODIAN_LINKED)
     assert len(linked) == 1
     assert linked[0].resource_id == custodian.id
+
+
+def test_ad_mapped_group_gets_corresponding_profile(_ad_db, unauth_client):
+    """Grupo AD diferente → perfil EXISTENTE correspondente ao mapeamento."""
+    _enable_ad(_ad_db)
+    _map_group(_ad_db, "GRP-SISPAT-CONSULTA", "Consulta")
+    with _mock_ldap(_ad_user(groups=("GRP-SISPAT-CONSULTA",))):
+        resp = unauth_client.post("/api/v1/auth/login", data={"username": "joao.silva", "password": "x12345678"})
+    assert resp.status_code == 200, resp.text
+    _ad_db.expire_all()
+    user = _ad_db.query(User).filter(User.username == "joao.silva").first()
+    assert user is not None
+    assert get_user_role_names(_ad_db, user) == ["Consulta"]
 
 
 def test_ad_login_does_not_touch_patrimonial_data(_ad_db, unauth_client):
@@ -355,6 +402,7 @@ def test_ad_audit_events_recorded(_ad_db, unauth_client):
     actions = _audit_actions(_ad_db)
     assert ad_service.ACTION_AD_LOGIN_FAILED not in actions
     for expected in (
+        ad_service.ACTION_AD_LOGIN_AUTHORIZED,
         ad_service.ACTION_AD_PROVISIONED,
         ad_service.ACTION_AD_GROUP_SYNC,
         ad_service.ACTION_AD_ROLE_SYNCED,
