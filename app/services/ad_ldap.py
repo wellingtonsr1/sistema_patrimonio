@@ -133,7 +133,8 @@ def _search_service_account(settings: ADSettings, conn: Connection, username: st
     """Busca o usuário por sAMAccountName usando a conta de serviço (bind técnico)."""
     search_base = settings.search_dn or settings.base_dn
     filtro = f"(&(objectClass=person)(sAMAccountName={_escape(username)}))"
-    ok, _result, _resp, _req = conn.search(
+    # ldap3.Connection.search() retorna bool (True = sucesso); usar conn.entries
+    ok = conn.search(
         search_base, filtro, search_scope=SUBTREE, attributes=_USER_ATTRS
     )
     if not ok:
