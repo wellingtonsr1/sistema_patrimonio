@@ -12,6 +12,7 @@ auditoria.
 """
 
 from datetime import datetime
+import os
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -42,6 +43,12 @@ from app.services.audit_service import (
     write_change_audit,
 )
 from app.services.auth_service import change_password, create_user, reset_password
+from app.services import ad_service
+from app.services import ad_ldap
+from app.services.audit_service import (
+    ACTION_AD_CONNECTION_TESTED,
+    ACTION_AD_SETTINGS_UPDATED,
+)
 from app.web.routes import templates
 
 admin_router = APIRouter(include_in_schema=False)
@@ -608,3 +615,177 @@ def _quote(value: str) -> str:
     """Percent-encode seguro para parâmetros de URL."""
     from urllib.parse import quote
     return quote(value, safe="")
+
+
+# ============================================================================
+# INTEGRAÇÃO ACTIVE DIRECTORY (Administração → Integração AD)
+# ============================================================================
+
+def _ad_admin_guard(db: Session, user: User) -> None:
+    """A tela de AD é restrita a quem administra usuários e perfis."""
+    if user.is_admin:
+        return
+    perms = permission_service.get_user_permission_names(db, user)
+    if "usuarios.editar" not in perms or "perfis.editar" not in perms:
+        raise HTTPException(status_code=403, detail="Acesso administrativo não autorizado")
+
+
+@admin_router.get("/admin/ad", response_class=HTMLResponse)
+def admin_ad_page(request: Request, error: Optional[str] = None, success: Optional[str] = None, db: Session = Depends(get_db)):
+    _ad_admin_guard(db, request.state.user)
+    settings = ad_service.get_ad_settings(db)
+    mappings = ad_service.get_group_mappings(db)
+    for m in mappings:
+        role = permission_service.get_role_by_id(db, m.role_id)
+        m.role_name = role.name if role else "(perfil removido)"
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/ad/settings.html",
+        context={
+            "settings": settings,
+            "mappings": mappings,
+            "roles": permission_service.get_all_roles(db),
+            "error": error or "",
+            "success": success or "",
+            "bind_user_env": bool(os.getenv("AD_BIND_USER")),
+            "bind_password_env": bool(os.getenv("AD_BIND_PASSWORD")),
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.post("/admin/ad/settings", response_class=HTMLResponse)
+def admin_ad_save_settings(
+    request: Request,
+    enabled: bool = Form(False),
+    server: str = Form(""),
+    port: int = Form(636),
+    use_ldaps: bool = Form(False),
+    verify_tls: bool = Form(False),
+    base_dn: str = Form(""),
+    search_dn: str = Form(""),
+    bind_user: str = Form(""),
+    timeout_seconds: int = Form(10),
+    auto_create_user: bool = Form(False),
+    link_by_email: bool = Form(False),
+    group_role_priority: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    actor = request.state.user
+    _ad_admin_guard(db, actor)
+    settings = ad_service.get_ad_settings(db)
+    before = {
+        "enabled": settings.enabled, "server": settings.server, "port": settings.port,
+        "use_ldaps": settings.use_ldaps, "verify_tls": settings.verify_tls,
+        "base_dn": settings.base_dn, "search_dn": settings.search_dn,
+        "bind_user": settings.bind_user, "timeout_seconds": settings.timeout_seconds,
+        "auto_create_user": settings.auto_create_user, "link_by_email": settings.link_by_email,
+        "group_role_priority": settings.group_role_priority,
+    }
+    after = {
+        "enabled": enabled, "server": server.strip(), "port": port,
+        "use_ldaps": use_ldaps, "verify_tls": verify_tls,
+        "base_dn": base_dn.strip(), "search_dn": search_dn.strip() or None,
+        "bind_user": bind_user.strip() or None, "timeout_seconds": timeout_seconds,
+        "auto_create_user": auto_create_user, "link_by_email": link_by_email,
+        "group_role_priority": group_role_priority.strip() or None,
+    }
+    if after["enabled"] and (not after["server"] or not after["base_dn"]):
+        return RedirectResponse(
+            url="/admin/ad?error=" + _quote("Para habilitar, informe servidor e Base DN."),
+            status_code=303,
+        )
+    for key, value in after.items():
+        setattr(settings, key, value)
+    settings.updated_by = actor.username
+    db.commit()
+    write_change_audit(
+        db,
+        user=actor,
+        action=ACTION_AD_SETTINGS_UPDATED,
+        module="Integração AD",
+        resource="ADSettings",
+        resource_id=settings.id,
+        ip_address=_client_ip(request),
+        before=before,
+        after=after,
+        description="Alteração da configuração da Integração AD",
+    )
+    return RedirectResponse(url="/admin/ad?success=" + _quote("Configuração salva."), status_code=303)
+
+
+@admin_router.post("/admin/ad/test", response_class=HTMLResponse)
+def admin_ad_test_connection(request: Request, db: Session = Depends(get_db)):
+    """Teste de conexão com o AD (bind de serviço via variáveis de ambiente)."""
+    actor = request.state.user
+    _ad_admin_guard(db, actor)
+    settings = ad_service._effective_settings(db)
+    result = ad_ldap.test_connection(settings)
+    write_audit(
+        db,
+        user=actor,
+        action=ACTION_AD_CONNECTION_TESTED,
+        module="Integração AD",
+        resource="ADSettings",
+        resource_id=settings.id,
+        ip_address=_client_ip(request),
+        result="SUCCESS" if result.get("ok") else "FAILURE",
+        description=f"Teste de conexão AD ({settings.server}:{settings.port}): {result.get('message', '')}",
+    )
+    if result.get("ok"):
+        msg = _quote(f"Conexão OK: {result.get('message')}")
+        return RedirectResponse(url=f"/admin/ad?success={msg}", status_code=303)
+    msg = _quote(f"Falha: {result.get('message')}")
+    return RedirectResponse(url=f"/admin/ad?error={msg}", status_code=303)
+
+
+@admin_router.post("/admin/ad/mappings", response_class=HTMLResponse)
+def admin_ad_add_mapping(
+    request: Request,
+    group_name: str = Form(...),
+    role_id: int = Form(...),
+    priority: int = Form(10),
+    db: Session = Depends(get_db),
+):
+    actor = request.state.user
+    _ad_admin_guard(db, actor)
+    try:
+        ad_service.upsert_group_mapping(db, group_name, role_id, priority)
+    except ValueError as err:
+        return RedirectResponse(url=f"/admin/ad?error={_quote(str(err))}", status_code=303)
+    role = permission_service.get_role_by_id(db, role_id)
+    write_audit(
+        db,
+        user=actor,
+        action=ACTION_AD_SETTINGS_UPDATED,
+        module="Integração AD",
+        resource="ADGroupRole",
+        resource_id=role_id,
+        resource_ref=group_name.strip(),
+        ip_address=_client_ip(request),
+        new_data={"grupo": group_name.strip(), "perfil": role.name if role else role_id, "prioridade": priority},
+        description=f"Mapeamento Grupo AD → Perfil: '{group_name.strip()}' → '{role.name if role else role_id}'",
+    )
+    return RedirectResponse(url="/admin/ad?success=" + _quote("Mapeamento salvo."), status_code=303)
+
+
+@admin_router.post("/admin/ad/mappings/{mapping_id}/delete", response_class=HTMLResponse)
+def admin_ad_delete_mapping(request: Request, mapping_id: int, db: Session = Depends(get_db)):
+    actor = request.state.user
+    _ad_admin_guard(db, actor)
+    mapping = db.query(ad_service.ADGroupRole).filter(ad_service.ADGroupRole.id == mapping_id).first()
+    if mapping:
+        group_name, role_id = mapping.group_name, mapping.role_id
+        ad_service.delete_group_mapping(db, mapping_id)
+        write_audit(
+            db,
+            user=actor,
+            action=ACTION_AD_SETTINGS_UPDATED,
+            module="Integração AD",
+            resource="ADGroupRole",
+            resource_id=role_id,
+            resource_ref=group_name,
+            ip_address=_client_ip(request),
+            description=f"Mapeamento Grupo AD removido: '{group_name}'",
+        )
+    return RedirectResponse(url="/admin/ad?success=" + _quote("Mapeamento removido."), status_code=303)

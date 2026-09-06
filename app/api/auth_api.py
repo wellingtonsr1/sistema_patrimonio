@@ -26,8 +26,13 @@ from app.services.audit_service import (
     RESULT_SUCCESS,
     write_audit,
 )
-from app.services.auth_provider import get_auth_provider
+from app.services.auth_provider import resolve_authentication
 from app.services.auth_service import AccountLockedError
+from app.services.ad_service import (
+    ADAuthenticationError,
+    ADNoProfileError,
+    ADUnavailableError,
+)
 from app.services.permission_service import get_user_permission_names
 from app.services.session_service import (
     clear_session_cookie,
@@ -58,7 +63,7 @@ def api_login(
     """Autentica um usuário e estabelece a sessão via cookie."""
     ip = _client_ip(request)
     try:
-        user = get_auth_provider().authenticate(db, username, password)
+        user = resolve_authentication(db, username, password)
     except AccountLockedError as err:
         write_audit(
             db,
@@ -76,6 +81,11 @@ def api_login(
             status_code=423,
             detail="Conta temporariamente bloqueada por excesso de tentativas de login. Tente novamente mais tarde.",
         )
+    except (ADUnavailableError, ADAuthenticationError, ADNoProfileError) as ad_exc:
+        # Falhas específicas do AD: auditoria já registrada no serviço da
+        # integração; aqui apenas o status/mensagem genérica para o cliente.
+        status_code = 503 if isinstance(ad_exc, ADUnavailableError) else 401
+        raise HTTPException(status_code=status_code, detail=str(ad_exc))
 
     if not user:
         write_audit(

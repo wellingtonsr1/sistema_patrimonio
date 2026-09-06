@@ -1,5 +1,6 @@
 from typing import Optional
 from datetime import datetime
+import logging
 from urllib.parse import quote
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, UploadFile, File, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -25,8 +26,13 @@ from app.services.maintenance_service import MaintenanceService
 from app.services.dashboard_service import DashboardService
 from app.services.report_service import ReportService
 from app.api.deps import _client_ip, get_current_user, require_permission
-from app.services.auth_provider import get_auth_provider
+from app.services.auth_provider import resolve_authentication
 from app.services.auth_service import AccountLockedError
+from app.services.ad_service import (
+    ADAuthenticationError,
+    ADNoProfileError,
+    ADUnavailableError,
+)
 from app.services.permission_service import get_user_permission_names, get_user_role_names
 from app.services.audit_service import (
     ACTION_CREATE,
@@ -91,6 +97,8 @@ templates = Jinja2Templates(
     context_processors=[_inject_current_user],
 )
 
+logger = logging.getLogger("sispatrimonio.web")
+
 # Injeta variáveis globais nos templates
 templates.env.globals["app_name"] = APP_NAME
 templates.env.globals["app_version"] = APP_VERSION
@@ -132,8 +140,15 @@ def login_submit(
 ):
     """Processa o login via formulário e estabelece a sessão."""
     ip = _client_ip(request)
+    ad_error_message = None
     try:
-        user = get_auth_provider().authenticate(db, username, password)
+        user = resolve_authentication(db, username, password)
+    except (ADUnavailableError, ADAuthenticationError, ADNoProfileError) as ad_exc:
+        # Erros específicos da integração AD: mensagem clara e genérica ao
+        # usuário; detalhes técnicos ficam apenas no log do servidor.
+        user = None
+        ad_error_message = str(ad_exc)
+        logger.warning("Falha de login AD para '%s': %s", username, type(ad_exc).__name__)
     except AccountLockedError:
         write_audit(
             db,
@@ -157,6 +172,15 @@ def login_submit(
         )
 
     if not user:
+        if ad_error_message:
+            # Falha específica do AD (indisponibilidade, credencial ou perfil):
+            # mensagem já amigável; a auditoria específica foi registrada no
+            # serviço da integração. Não duplica LOGIN_FALHA local.
+            return templates.TemplateResponse(
+                request=request,
+                name="login.html",
+                context={"next": next, "error": ad_error_message},
+            )
         write_audit(
             db,
             user=None,

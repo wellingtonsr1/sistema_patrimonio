@@ -156,21 +156,36 @@ O bloqueio é por conta, registrado na trilha de auditoria (`LOGIN_BLOQUEADO`),
 e não revela a existência da conta (o tempo de resposta é equalizado para
 usuários inexistentes).
 
-### Preparação para Active Directory / LDAP
+### Integração Active Directory / Samba AD (implementada)
 
-A arquitetura está **preparada** para a integração futura com AD/LDAP/LDAPS,
-mas **ainda não implementada**:
+O sistema autentica via **Active Directory** (Microsoft AD ou **Samba AD DC**)
+usando apenas LDAP/LDAPS padrão (biblioteca `ldap3`), **sem substituir** a
+autenticação local nem o RBAC existente:
 
-- `app/services/auth_provider.py` define o contrato `AuthProvider` com o provedor
-  `LocalAuthProvider` ativo; um `ADAuthProvider` foi esboçado e recusa login até
-  ser implementado (sem falha silenciosa).
-- `app/config.py` já expõe `AD_SERVER`, `AD_PORT`, `AD_USE_SSL`, `AD_BASE_DN`,
-  `AD_USER_DN` e `AD_GROUP_BASE_DN` (vazios/desativados por padrão).
-- A sessão é desacoplada da autenticação: o provedor futuro só precisa devolver
-  o usuário (`User`) autenticado; sessão, cookies e proteção de rotas não mudam.
+- **Login híbrido**: contas locais (ex: `admin`) continuam autenticando como
+  antes; contas `auth_provider='ad'` autenticam sempre no diretório.
+- **Administração → Integração AD**: tela para configurar servidor/porta/LDAPS,
+  Base DN, DN de busca, timeout, provisionamento e **mapear Grupos AD → Perfis
+  existentes** (o AD nunca define permissões; perfis determinam permissões).
+- **Provisionamento no 1º login**: cria o usuário do sistema e o vincula ao
+  **colaborador existente** por e-mail/matrícula (nunca duplica cadastro),
+  atribuindo o perfil do grupo AD com **prioridade configurável e
+  determinística**. Perfis atribuídos manualmente são preservados na sincronia.
+- **Segurança**: senha do usuário AD nunca é armazenada/logada; a senha da conta
+  de serviço existe somente em variáveis de ambiente (`AD_BIND_PASSWORD`);
+  LDAPS com validação de certificado é o recomendado; timeout obrigatório;
+  conta desabilitada no AD → login negado (histórico/colaborador preservados).
+- **Auditoria**: eventos próprios na trilha existente (`LOGIN_AD`,
+  `USUARIO_AD_PROVISIONADO`, `GRUPOS_AD_IDENTIFICADOS`,
+  `PERFIL_SINCRONIZADO_AD`, `CONFLITO/SEM_MAPEAMENTO`, `FALHA_COMUNICACAO_AD`,
+  `ALTERACAO_CONFIG_AD`, `TESTE_CONEXAO_AD`, etc.) — sem credenciais.
 
-Para ativar AD no futuro: implementar o `ADAuthProvider`, apontar
-`AUTH_PROVIDER=ad` e definir as variáveis `AD_*`.
+**Como ativar:** tela **Administração → Integração AD** (marque *Habilitar*,
+informe servidor e Base DN, teste a conexão e salve), depois cadastre os
+mapeamentos `Grupo AD → Perfil`. Como fallback/valor inicial dos campos, podem
+ser usadas as variáveis de ambiente `AD_SERVER`, `AD_PORT`, `AD_USE_SSL`,
+`AD_BASE_DN`, `AD_USER_DN` (DN de busca), `AD_BIND_USER` e `AD_BIND_PASSWORD`
+(conta de serviço; senha **somente** em ambiente, nunca no banco).
 
 ---
 

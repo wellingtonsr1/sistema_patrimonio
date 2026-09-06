@@ -55,11 +55,15 @@ AUTH_ADMIN_PASSWORD = os.getenv("AUTH_ADMIN_PASSWORD", "")
 AUTH_ADMIN_NAME = os.getenv("AUTH_ADMIN_NAME", "Administrador")
 
 # ============================================================================
-# ACTIVE DIRECTORY / LDAP — PREPARAÇÃO FUTURA (ainda NÃO implementado)
+# ACTIVE DIRECTORY / LDAP — Integração (tela Administração → Integração AD;
+# variáveis abaixo funcionam como fallback/valor inicial dos campos vazios).
+# A SENHA do usuário de serviço NUNCA vai para o banco: só ambiente.
 # ============================================================================
 AD_SERVER = os.getenv("AD_SERVER", "")
-AD_PORT = int(os.getenv("AD_PORT", "389"))
+AD_PORT = int(os.getenv("AD_PORT", "636"))
 AD_USE_SSL = os.getenv("AD_USE_SSL", "false").strip().lower() == "true"
 AD_BASE_DN = os.getenv("AD_BASE_DN", "")
 AD_USER_DN = os.getenv("AD_USER_DN", "")
 AD_GROUP_BASE_DN = os.getenv("AD_GROUP_BASE_DN", "")
+AD_BIND_USER = os.getenv("AD_BIND_USER", "")                # conta de serviço (consulta)
+AD_BIND_PASSWORD = os.getenv("AD_BIND_PASSWORD", "")        # senha do serviço (somente ambiente)

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Integração AD | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title"><i class="bi bi-hdd-network me-2" style="color:var(--indigo);"></i>Integração Active Directory</h3>
+        <p class="page-header-subtitle">Autenticação via AD/Samba AD com mapeamento de grupos para os perfis existentes. Login local permanece ativo.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="post" action="/admin/ad/test">
+            <button type="submit" class="btn btn-ghost"><i class="bi bi-plug me-1"></i> Testar Conexão</button>
+        </form>
+        <a href="/admin/users" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Voltar</a>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger d-flex align-items-center gap-2 py-2 small" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+{% if success %}
+<div class="alert alert-success d-flex align-items-center gap-2 py-2 small" role="alert">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ success }}</span>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-12 col-lg-7">
+        <!-- Conexão -->
+        <form method="post" action="/admin/ad/settings" class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-server"></i> Conexão</div>
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" name="enabled" id="ad_enabled" value="true" {% if settings.enabled %}checked{% endif %}>
+                <label class="form-check-label fw-semibold" for="ad_enabled">Habilitar integração com Active Directory</label>
+                <div class="form-text">Desabilitado, todos os logins usam autenticação local (usuários AD não entram).</div>
+            </div>
+            <div class="row g-3">
+                <div class="col-12 col-md-8">
+                    <label class="form-label fw-semibold">Servidor AD <span class="text-danger">*</span></label>
+                    <input type="text" name="server" class="form-control" placeholder="dc01.empresa.local" value="{{ settings.server or '' }}">
+                </div>
+                <div class="col-6 col-md-4">
+                    <label class="form-label fw-semibold">Porta</label>
+                    <input type="number" name="port" class="form-control" min="1" max="65535" value="{{ settings.port or 636 }}">
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="use_ldaps" id="use_ldaps" value="true" {% if settings.use_ldaps %}checked{% endif %}>
+                        <label class="form-check-label" for="use_ldaps">Usar LDAPS (recomendado, porta 636)</label>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="verify_tls" id="verify_tls" value="true" {% if settings.verify_tls %}checked{% endif %}>
+                        <label class="form-check-label" for="verify_tls">Validar certificado TLS</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Base DN <span class="text-danger">*</span></label>
+                    <input type="text" name="base_dn" class="form-control" placeholder="dc=empresa,dc=local" value="{{ settings.base_dn or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">DN de busca de usuários <span class="text-muted fw-normal">(opcional)</span></label>
+                    <input type="text" name="search_dn" class="form-control" placeholder="ou=usuarios,dc=empresa,dc=local" value="{{ settings.search_dn or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Usuário de serviço (bind) <span class="text-muted fw-normal">(opcional)</span></label>
+                    <input type="text" name="bind_user" class="form-control" placeholder="CN=svc-sispat,CN=Users,dc=empresa,dc=local" value="{{ settings.bind_user or '' }}">
+                    <div class="form-text">
+                        A senha do serviço <strong>nunca</strong> é gravada no sistema:
+                        defina via variáveis de ambiente
+                        <code>AD_BIND_USER</code> ({{ 'definida' if bind_user_env else 'não definida' }}) e
+                        <code>AD_BIND_PASSWORD</code> ({{ 'definida' if bind_password_env else 'não definida' }}).
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <label class="form-label fw-semibold">Timeout (s)</label>
+                    <input type="number" name="timeout_seconds" class="form-control" min="1" max="120" value="{{ settings.timeout_seconds or 10 }}">
+                </div>
+            </div>
+
+            <div class="form-section mt-4"><i class="bi bi-person-plus"></i> Provisionamento no primeiro login</div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="auto_create_user" id="auto_create_user" value="true" {% if settings.auto_create_user %}checked{% endif %}>
+                <label class="form-check-label" for="auto_create_user">Criar usuário do sistema automaticamente quando autenticar no AD</label>
+            </div>
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" name="link_by_email" id="link_by_email" value="true" {% if settings.link_by_email %}checked{% endif %}>
+                <label class="form-check-label" for="link_by_email">Vincular colaborador existente pelo e-mail (nunca duplica cadastro)</label>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Prioridade dos grupos (opcional)</label>
+                <input type="text" name="group_role_priority" class="form-control" placeholder="GRP-SISPAT-ADMIN, GRP-SISPAT-GESTORES-TI, GRP-SISPAT-TECNICOS-TI" value="{{ settings.group_role_priority or '' }}">
+                <div class="form-text">Lista separada por vírgulas. Usuário em vários grupos mapeados recebe o perfil do grupo que aparecer primeiro nesta lista (padrão: menor número de prioridade).</div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-2">
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-check2-circle me-1"></i> Salvar Configuração
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-12 col-lg-5">
+        <!-- Mapeamento Grupo AD → Perfil -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-diagram-3"></i> Grupos AD → Perfis</div>
+            <p class="text-muted small mb-3">
+                O AD não define permissões: cada grupo é associado a um
+                <strong>perfil existente</strong>, que determina as permissões.
+                Usuário em vários grupos recebe o perfil de maior prioridade
+                (menor número).
+            </p>
+            {% if mappings %}
+            <div class="table-responsive mb-3">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Grupo AD</th>
+                            <th>Perfil</th>
+                            <th class="text-center">Prio.</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in mappings %}
+                        <tr>
+                            <td class="small fw-semibold" style="color:var(--c-text);">{{ m.group_name }}</td>
+                            <td><span class="badge badge-soft-gray" style="font-size:.68rem;">{{ m.role_name }}</span></td>
+                            <td class="text-center small">{{ m.priority }}</td>
+                            <td class="text-end">
+                                <form method="post" action="/admin/ad/mappings/{{ m.id }}/delete">
+                                    <button type="submit" class="btn btn-ghost btn-sm text-danger" title="Remover mapeamento"
+                                            onclick="return confirm('Remover o mapeamento do grupo {{ m.group_name }}?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-3 mb-3">
+                <i class="bi bi-diagram-3 empty-state-icon"></i>
+                <div class="empty-state-title" style="font-size:.9rem;">Nenhum grupo mapeado</div>
+                <div class="text-muted small">Usuários AD autenticados sem grupo mapeado não recebem acesso.</div>
+            </div>
+            {% endif %}
+
+            <form method="post" action="/admin/ad/mappings" class="border-top pt-3">
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold small">Grupo AD</label>
+                        <input type="text" name="group_name" class="form-control form-control-sm" placeholder="GRP-SISPAT-GESTORES-TI" required>
+                    </div>
+                    <div class="col-7">
+                        <label class="form-label fw-semibold small">Perfil existente</label>
+                        <select name="role_id" class="form-select form-select-sm" required>
+                            {% for r in roles %}
+                            <option value="{{ r.id }}">{{ r.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label fw-semibold small">Prioridade</label>
+                        <input type="number" name="priority" class="form-control form-control-sm" value="10" min="1" max="999">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                            <i class="bi bi-plus-lg me-1"></i> Adicionar Mapeamento
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="card p-4">
+            <div class="section-divider mb-3"><i class="bi bi-shield-check"></i> Segurança</div>
+            <ul class="small text-muted mb-0 ps-3">
+                <li>A senha do usuário AD nunca é armazenada nem registrada em logs/auditoria.</li>
+                <li>LDAPS com validação de certificado é o padrão recomendado.</li>
+                <li>Contas desabilitadas no AD não conseguem autenticar.</li>
+                <li>Usuários locais (ex: <code>admin</code>) continuam autenticando normalmente.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

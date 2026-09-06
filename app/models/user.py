@@ -30,6 +30,11 @@ class User(Base):
     failed_login_attempts = Column(Integer, default=0, nullable=False)   # tentativas falhas consecutivas
     locked_until = Column(DateTime, nullable=True)                       # bloqueio temporário por excesso de tentativas
 
+    # Integração Active Directory (somente para auth_provider='ad'; locais não usam)
+    ad_object_guid = Column(String(64), nullable=True, index=True)       # identificador estável do objeto AD (Samba AD e MS AD)
+    ad_dn = Column(String(400), nullable=True)                           # DN do objeto no diretório
+    ad_last_sync = Column(DateTime, nullable=True)                       # última sincronização via AD
+
     # Relacionamentos
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     user_roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")

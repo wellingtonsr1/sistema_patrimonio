@@ -43,6 +43,27 @@ def _ensure_schema_migrations():
             ))
         if "locked_until" not in existing_users_cols:
             conn.execute(text("ALTER TABLE users ADD COLUMN locked_until DATETIME"))
+
+        # Integração Active Directory: colunas adicionais em `users`
+        # (autônoma: usuários locais permanecem NULL em todas)
+        for _col, _ddl in (
+            ("ad_object_guid", "VARCHAR(64)"),
+            ("ad_dn", "VARCHAR(400)"),
+            ("ad_last_sync", "DATETIME"),
+        ):
+            if _col not in existing_users_cols:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {_col} {_ddl}"))
+
+        # Origem da atribuição de perfil em `user_roles` ('local' | 'ad')
+        existing_user_roles_cols = {
+            row[1] for row in conn.execute(text("PRAGMA table_info(user_roles)"))
+        }
+        if "assigned_by" not in existing_user_roles_cols:
+            conn.execute(text(
+                "ALTER TABLE user_roles ADD COLUMN assigned_by VARCHAR(20) "
+                "DEFAULT 'local' NOT NULL"
+            ))
+
         conn.commit()
 
 

@@ -52,6 +52,7 @@
                 <tr>
                     <th>Usuário</th>
                     <th>E-mail</th>
+                    <th>Origem</th>
                     <th>Perfis</th>
                     <th>Status</th>
                     <th>Último Acesso</th>
@@ -71,6 +72,13 @@
                         {% endif %}
                     </td>
                     <td class="small text-muted">{{ u.email or '-' }}</td>
+                    <td>
+                        {% if u.auth_provider == 'ad' %}
+                        <span class="badge badge-soft-primary" style="font-size:.66rem;"><i class="bi bi-hdd-network me-1"></i>Active Directory</span>
+                        {% else %}
+                        <span class="badge badge-soft-gray" style="font-size:.66rem;">Local</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if u.role_names %}
                         <div class="d-flex flex-wrap gap-1">

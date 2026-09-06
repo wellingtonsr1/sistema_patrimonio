@@ -40,21 +40,19 @@ class LocalAuthProvider(AuthProvider):
 
 class ADAuthProvider(AuthProvider):
     """
-    Provedor reservado para Active Directory / LDAP / LDAPS.
+    Provedor de autenticação via Active Directory / LDAP / LDAPS.
 
-    NÃO IMPLEMENTADO nesta versão. A estrutura (configurações AD_* em
-    app/config.py e este provedor) existe apenas como preparação. Ativar
-    AUTH_PROVIDER=ad fará o sistema recusar autenticação até que este
-    provedor seja implementado, em vez de falhar silenciosamente.
+    Delega ao serviço da integração (ad_service.authenticate_and_sync), que
+    autentica no diretório, resolve o perfil pelo mapeamento Grupo AD → Perfil
+    EXISTENTE, provisiona/vincula o usuário e registra auditoria. A senha NUNCA
+    é persistida ou logada.
     """
 
     name = "ad"
 
     def authenticate(self, db: Session, username: str, password: str) -> Optional[User]:
-        raise NotImplementedError(
-            "Autenticação via Active Directory/LDAP ainda não foi implementada. "
-            "Use AUTH_PROVIDER=local ou implemente o ADAuthProvider."
-        )
+        from app.services import ad_service
+        return ad_service.authenticate_and_sync(db, username, password)
 
 
 def get_auth_provider(name: Optional[str] = None) -> AuthProvider:
@@ -65,3 +63,38 @@ def get_auth_provider(name: Optional[str] = None) -> AuthProvider:
     if provider_name in ("ad", "ldap", "ldaps"):
         return ADAuthProvider()
     raise ValueError(f"Provedor de autenticação desconhecido: '{provider_name}'")
+
+
+def resolve_authentication(db: Session, username: str, password: str) -> Optional[User]:
+    """
+    Resolve o login entre os provedores, preservando 100% o acesso local:
+
+    1. Usuário EXISTENTE local (auth_provider='local', ex: admin) →
+       autenticação local atual (jamais migra para AD).
+    2. Demais casos, com a integração AD habilitada → Active Directory
+       (autentica, sincroniza perfil e provisiona na 1ª entrada).
+    3. AD desabilitado/indisponível para o usuário → comportamento local
+       (None), sem falha silenciosa: erros tipados do AD são propagados.
+
+    Usuários AD autenticam SEMPRE pelo AD (nunca por senha local).
+    """
+    from app.services import ad_service
+
+    username = (username or "").strip()
+    existing = (
+        db.query(User).filter(User.username == username).first()
+        if username else None
+    )
+
+    # 1) Contas locais existentes continuam usando a autenticação atual
+    if existing is not None and existing.auth_provider == ad_service.PROVIDER_LOCAL:
+        return LocalAuthProvider().authenticate(db, username, password)
+
+    # 2/3) AD quando habilitado; caso contrário, caminho local (compatibilidade)
+    if ad_service.ad_enabled(db):
+        return ADAuthProvider().authenticate(db, username, password)
+
+    if existing is not None and existing.auth_provider == ad_service.PROVIDER_AD:
+        # Usuário AD com integração desabilitada: sem senha local utilizável.
+        return None
+    return LocalAuthProvider().authenticate(db, username, password)

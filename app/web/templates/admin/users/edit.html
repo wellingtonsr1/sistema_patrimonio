@@ -11,7 +11,8 @@
         </h3>
         <p class="page-header-subtitle">
             {% if user.full_name %}{{ user.full_name }} • {% endif %}
-            Último acesso: {{ user.last_login.strftime('%d/%m/%Y %H:%M') if user.last_login else 'Nunca' }}
+            Último acesso: {{ user.last_login.strftime('%d/%m/%Y %H:%M') if user.last_login else 'Nunca' }} •
+            Origem: {% if user.auth_provider == 'ad' %}Active Directory{% else %}Local{% endif %}
         </p>
     </div>
     <a href="/admin/users" class="btn btn-ghost">
@@ -80,6 +81,19 @@
     </div>
 
     <div class="col-12 col-lg-5">
+        {% if user.auth_provider == 'ad' %}
+        <!-- Identidade AD (somente leitura) -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-hdd-network"></i> Usuário Active Directory</div>
+            <ul class="small text-muted mb-0 ps-3">
+                <li>Identificador AD: <code>{{ user.ad_object_guid or '-' }}</code></li>
+                <li>DN: <span class="text-break">{{ user.ad_dn or '-' }}</span></li>
+                <li>Última sincronização: {{ user.ad_last_sync.strftime('%d/%m/%Y %H:%M') if user.ad_last_sync else 'Nunca' }}</li>
+                <li>Perfis atribuídos via AD são sincronizados a cada login; perfis manuais são preservados.</li>
+            </ul>
+        </div>
+        {% endif %}
+
         <!-- Status & Ações -->
         <div class="card p-4 mb-4">
             <div class="section-divider mb-3"><i class="bi bi-activity"></i> Situação da Conta</div>
@@ -113,7 +127,7 @@
             {% endif %}
         </div>
 
-        {% if can('usuarios.editar') %}
+        {% if can('usuarios.editar') and user.auth_provider != 'ad' %}
         <div class="card p-4">
             <div class="section-divider mb-3"><i class="bi bi-key"></i> Redefinir Senha</div>
             <form method="post" action="/admin/users/{{ user.id }}/reset-password">

@@ -98,6 +98,11 @@
                 <i class="bi bi-shield-lock"></i> Perfis & Permissões
             </a>
             {% endif %}
+            {% if can('usuarios.editar') and can('perfis.editar') %}
+            <a class="sidebar-nav-item" href="/admin/ad">
+                <i class="bi bi-hdd-network"></i> Integração AD
+            </a>
+            {% endif %}
             {% if can('auditoria.visualizar') %}
             <a class="sidebar-nav-item" href="/admin/audit">
                 <i class="bi bi-journal-check"></i> Auditoria
@@ -209,6 +214,9 @@
                             {% endif %}
                             {% if can('perfis.visualizar') %}
                             <li><a class="dropdown-item py-2" href="/admin/roles"><i class="bi bi-shield-lock me-2" style="color:var(--indigo);"></i>Perfis & Permissões</a></li>
+                            {% endif %}
+                            {% if can('usuarios.editar') and can('perfis.editar') %}
+                            <li><a class="dropdown-item py-2" href="/admin/ad"><i class="bi bi-hdd-network me-2" style="color:var(--indigo);"></i>Integração AD</a></li>
                             {% endif %}
                             {% if can('auditoria.visualizar') %}
                             <li><a class="dropdown-item py-2" href="/admin/audit"><i class="bi bi-journal-check me-2" style="color:var(--green);"></i>Auditoria</a></li>
