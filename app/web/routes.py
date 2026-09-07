@@ -20,6 +20,7 @@ from app.services.asset_service import AssetService
 from app.services.movement_service import MovementService
 from app.services.import_service import parse_csv, preview_import, execute_import
 from app.services.custodian_import_service import parse_custodian_csv, preview_custodian_import, execute_custodian_import
+from app.services.location_import_service import parse_locations_csv, preview_locations_import, execute_locations_import
 from app.services.custodian_service import CustodianService
 from app.services.location_service import LocationService
 from app.services.maintenance_service import MaintenanceService
@@ -937,6 +938,138 @@ def list_locations_view(request: Request, db: Session = Depends(get_db)):
         request=request,
         name="locations/list.html",
         context={"locations": locations, "active_tab": "locations"}
+    )
+
+
+@web_router.get("/locations/import", response_class=HTMLResponse, dependencies=[Depends(require_permission("locais.criar"))])
+def form_import_locations(request: Request):
+    """Exibe o formulário de importação CSV de locais"""
+    return templates.TemplateResponse(
+        request=request,
+        name="locations/import.html",
+        context={"active_tab": "locations"},
+    )
+
+
+@web_router.post("/locations/import", response_class=HTMLResponse, dependencies=[Depends(require_permission("locais.criar"))])
+def process_import_locations(
+    request: Request,
+    file: UploadFile = File(...),
+    skip_duplicates: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    """Processa o upload e exibe pré-visualização da importação"""
+    if not file.filename or not file.filename.endswith(".csv"):
+        return templates.TemplateResponse(
+            request=request,
+            name="locations/import.html",
+            context={
+                "active_tab": "locations",
+                "error": "Arquivo inválido. Envie um arquivo .csv",
+            }
+        )
+
+    content = file.file.read().decode("utf-8-sig")
+    rows, parse_errors = parse_locations_csv(content)
+
+    if not rows and parse_errors:
+        return templates.TemplateResponse(
+            request=request,
+            name="locations/import.html",
+            context={
+                "active_tab": "locations",
+                "error": "Erros ao ler o arquivo CSV:",
+                "parse_errors": parse_errors,
+            }
+        )
+
+    preview = preview_locations_import(rows, db)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="locations/import.html",
+        context={
+            "active_tab": "locations",
+            "show_preview": True,
+            "preview": preview,
+            "csv_rows": rows,
+            "parse_errors": parse_errors,
+            "skip_duplicates": skip_duplicates,
+            "filename": file.filename,
+        }
+    )
+
+
+@web_router.post("/locations/import/confirm", dependencies=[Depends(require_permission("locais.criar"))])
+def confirm_import_locations(
+    request: Request,
+    csv_data: str = Form(...),
+    skip_duplicates: bool = Form(True),
+    db: Session = Depends(get_db)
+):
+    """Confirma e executa a importação de locais"""
+    import json
+    import html as html_mod
+    try:
+        decoded = html_mod.unescape(csv_data)
+        rows = json.loads(decoded)
+        if not isinstance(rows, list):
+            raise ValueError("Dados inválidos: esperado uma lista de registros")
+    except (json.JSONDecodeError, ValueError) as e:
+        return templates.TemplateResponse(
+            request=request,
+            name="locations/import.html",
+            context={
+                "active_tab": "locations",
+                "show_result": True,
+                "result": {
+                    "imported": 0,
+                    "skipped": 0,
+                    "errors": [f"Erro ao processar dados: {str(e)}"],
+                    "total_processed": 0,
+                },
+            }
+        )
+
+    try:
+        result = execute_locations_import(rows, db, skip_duplicates=skip_duplicates)
+    except Exception as e:
+        return templates.TemplateResponse(
+            request=request,
+            name="locations/import.html",
+            context={
+                "active_tab": "locations",
+                "show_result": True,
+                "result": {
+                    "imported": 0,
+                    "skipped": 0,
+                    "errors": [f"Erro na importação: {str(e)}"],
+                    "total_processed": 0,
+                },
+            }
+        )
+
+    write_audit(
+        db,
+        user=request.state.user,
+        action=ACTION_IMPORT,
+        module="Locais",
+        resource="Location",
+        resource_ref="importacao-csv",
+        ip_address=_client_ip(request),
+        description=f"Importação CSV de locais: {result.get('imported', 0)} criados, "
+                    f"{result.get('skipped', 0)} ignorados, {len(result.get('errors', []))} erros",
+        new_data={"imported": result.get("imported", 0), "skipped": result.get("skipped", 0)},
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="locations/import.html",
+        context={
+            "active_tab": "locations",
+            "show_result": True,
+            "result": result,
+        }
     )
 
 

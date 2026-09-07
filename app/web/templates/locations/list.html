@@ -9,9 +9,14 @@
         <p class="page-header-subtitle">Controle físico de unidades, prédios, salas e setores da organização.</p>
     </div>
     {% if can('locais.criar') %}
-    <a href="/locations/new" class="btn btn-primary">
-        <i class="bi bi-building-add me-1"></i> Cadastrar Novo Local
-    </a>
+    <div class="d-flex gap-2">
+        <a href="/locations/import" class="btn btn-outline-secondary">
+            <i class="bi bi-filetype-csv me-1"></i>Importar CSV
+        </a>
+        <a href="/locations/new" class="btn btn-primary">
+            <i class="bi bi-building-add me-1"></i> Cadastrar Novo Local
+        </a>
+    </div>
     {% endif %}
 </div>
 
