@@ -48,9 +48,9 @@
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <div class="kpi-label">Bens em Uso</div>
-                    <div class="kpi-value mt-1" style="color:var(--blue);" data-target="{{ stats.status_counts.in_use }}">0</div>
+                    <div class="kpi-value mt-1" style="color:var(--info);" data-target="{{ stats.status_counts.in_use }}">0</div>
                 </div>
-                <div class="kpi-icon-wrap" style="background:var(--blue-bg);color:var(--blue);">
+                <div class="kpi-icon-wrap" style="background:var(--info-bg);color:var(--info);">
                     <i class="bi bi-person-check"></i>
                 </div>
             </div>
@@ -84,9 +84,9 @@
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <div class="kpi-label">Movimentações</div>
-                    <div class="kpi-value mt-1" style="color:var(--indigo);" data-target="{{ stats.total_movements }}">0</div>
+                    <div class="kpi-value mt-1" style="color:var(--color-primary);" data-target="{{ stats.total_movements }}">0</div>
                 </div>
-                <div class="kpi-icon-wrap" style="background:var(--c-primary-50);color:var(--indigo);">
+                <div class="kpi-icon-wrap" style="background:var(--color-primary-light);color:var(--color-primary);">
                     <i class="bi bi-clock-history"></i>
                 </div>
             </div>
@@ -204,8 +204,8 @@
     // Cores dos gráficos adaptadas ao tema (claro/escuro)
     function themeChartColors() {                const dark = document.documentElement.getAttribute('data-theme') === 'dark';
                 return dark
-                    ? { tick: '#94a3b8', grid: '#2a2f3e' }
-                    : { tick: '#6B7280', grid: '#f3f4f6' };
+                    ? { tick: '#A8A2A1', grid: '#2D2929' }
+                    : { tick: '#8A8585', grid: '#E3DEDC' };
     }
 
     let statusChart = null;
@@ -231,7 +231,7 @@
                         {{ stats.status_counts.in_maintenance }},
                         {{ stats.status_counts.written_off }}
                     ],
-                    backgroundColor: ['#16803C', '#A6192E', '#B7791F', '#6B7280'],
+                    backgroundColor: ['#247A4B', '#A6192E', '#A66A13', '#8A8585'],
                     borderWidth: 0,
                     hoverOffset: 4,
                     borderRadius: 4
@@ -264,8 +264,8 @@
                 labels: catData.map(x => x.category),
                 datasets: [{
                     data: catData.map(x => x.count),
-                    backgroundColor: '#C83A4F',
-                    hoverBackgroundColor: '#A6192E',
+                    backgroundColor: '#A6192E',
+                    hoverBackgroundColor: '#8F1527',
                     borderRadius: 6,
                     maxBarThickness: 36
                 }]
