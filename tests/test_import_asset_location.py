@@ -6,6 +6,7 @@ from app.models.location import Location
 from app.models.asset import Asset
 from app.services.location_service import LocationService
 from app.services.import_service import parse_csv, execute_import
+from app.models.movement import Movement
 
 
 CSV_LOCALIZACAO_VALIDA = """\
@@ -27,6 +28,8 @@ CSV_LOCALIZACAO_INEXISTENTE = """\
 tombamento;equipamento;categoria;loc
 TEST004;Mouse;OTHER;Local_Inexistente_TESTE
 """
+
+# REMOVIDO: CSV_LOCALIZACAO_INEXISTENTE_2 nao usado
 
 CSV_MULTIPLOS_EQ = """\
 tombamento;equipamento;categoria;localizacao
@@ -122,10 +125,13 @@ def test_import_localizacao_vazia(db_session):
     assert errs == []
 
     result = execute_import(rows, db_session, skip_duplicates=False)
+    # coluna localização com valor vazio -> linha importada sem local
     assert result["imported"] == 1
+    assert result["errors"] == []
 
     asset = db_session.query(Asset).filter(Asset.tag == "TEST003").first()
     assert asset.location_id is None
+    assert asset.location is None
 
 
 def test_import_localizacao_inexistente(db_session):
@@ -134,10 +140,36 @@ def test_import_localizacao_inexistente(db_session):
     assert errs == []
 
     result = execute_import(rows, db_session, skip_duplicates=False)
+    # localizacao inexistente: importa sem local, sem crash
     assert result["imported"] == 1
+    assert result["errors"] == []
 
     asset = db_session.query(Asset).filter(Asset.tag == "TEST004").first()
+    assert asset is not None
     assert asset.location_id is None
+    assert asset.location is None
+    # confirma mecanismo de fallback Estoque Central somente para esse cenario
+    mov = db_session.query(Movement).filter(Movement.asset_id==asset.id).first()
+    assert mov.destination_location_name == "Estoque Central"
+
+
+def test_import_localizacao_valida_nao_importa_com_local_inexistente(db_session):
+    locs = _criar_locacoes_base(db_session)
+    csv = """\
+tombamento;equipamento;categoria;localização
+TEST_LI;Notebook;NOTEBOOK;Sala_Inexistente
+"""
+    rows, errs = parse_csv(csv)
+    assert errs == []
+
+    result = execute_import(rows, db_session, skip_duplicates=False)
+    # localizacao inexistente nao deve importar
+    assert result["imported"] == 0
+    assert len(result["errors"]) == 1
+    assert "Sala_Inexistente" in result["errors"][0]
+
+    asset = db_session.query(Asset).filter(Asset.tag == "TEST_LI").first()
+    assert asset is None
 
 
 def test_import_multiplos_equipamentos(db_session):
@@ -186,10 +218,13 @@ def test_import_sem_localizacao(db_session):
     assert errs == []
 
     result = execute_import(rows, db_session, skip_duplicates=False)
+    # CSV sem coluna localização: importa sem local
     assert result["imported"] == 1
+    assert result["errors"] == []
 
     asset = db_session.query(Asset).filter(Asset.tag == "TEST301").first()
     assert asset.location_id is None
+    assert asset.location is None
 
 
 def test_import_com_locacao_alias_localization(db_session):
@@ -217,16 +252,17 @@ tombamento;equipamento;categoria;loc
 TEST_LOC;Impressora;PRINTER;Sala de TI
 """
     rows, errs = parse_csv(csv)
-    # coluna 'loc' nao eh alias atualmente, deve ser ignorada
-    # mas o parser aceita colunas extras; a linha tera localizacao vazia
+    # coluna 'loc' nao eh alias atualmente; o parser aceita, mas a linha
+    # nao tem coluna de localização reconhecida, entao deve ser importada sem local
     assert errs == []
 
     result = execute_import(rows, db_session, skip_duplicates=False)
     assert result["imported"] == 1
+    assert result["errors"] == []
 
     asset = db_session.query(Asset).filter(Asset.tag == "TEST_LOC").first()
-    # sem coluna localização conhecida, deve ser None
     assert asset.location_id is None
+    assert asset.location is None
 
 
 def test_import_localizacao_com_acento(db_session):

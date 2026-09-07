@@ -263,6 +263,14 @@ COLUMN_ALIASES = {
     "notes": "notas",
     "observacao": "notas",
     "observação": "notas",
+    # localização
+    # localização (ordem preferida: nomes mais usados em primeiro)
+    "localizacao": "localizacao",
+    "localização": "localizacao",
+    "localization": "localizacao",
+    "location": "localizacao",
+    "local": "localizacao",
+    "locations": "localizacao",
 }
 
 
@@ -382,6 +390,7 @@ def execute_import(
             # Resolver localização via coluna localização (alias)
             location = None
             location_name = None
+            location_id = None
             loc_raw = (
                 row.get("localizacao")
                 or row.get("localization")
@@ -393,6 +402,12 @@ def execute_import(
                 location = LocationService.get_by_name(db, loc_raw)
                 if location:
                     location_name = location.name
+                    location_id = location.id
+                else:
+                    errors.append(
+                        f"Linha {i}: local '{loc_raw}' não encontrado no cadastro de locais"
+                    )
+                    continue
 
             # Verificar duplicata
             existing = db.query(Asset).filter(Asset.tag == tag).first()
@@ -464,7 +479,7 @@ def execute_import(
                 condition=condition,
                 status=AssetStatus.AVAILABLE,
                 notes=notes,
-                location_id=location.id if location else None,
+                location_id=location_id,
             )
             db.add(asset)
             db.flush()
