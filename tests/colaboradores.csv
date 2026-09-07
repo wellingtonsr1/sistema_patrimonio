@@ -1,0 +1,56 @@
+matricula;nome;email;cargo;setor;cpf;ativo
+MAT-1016;Alexandre Carvalho Gomes;alexandre.gomes16@empresa.com;Coordenador Financeiro;Financeiro;871.331.509-99;sim
+MAT-1036;Amanda Silva Nunes;amanda.nunes36@empresa.com;Gerente de Contas;Comercial;365.414.586-85;sim
+MAT-1017;Amanda Teixeira Rodrigues;amanda.rodrigues17@empresa.com;Cientista de Dados;Inteligência de Dados;010.310.518-21;sim
+MAT-1046;Ana Beatriz Souza;ana.souza@empresa.com;Analista de Dados;Inteligência de Dados;234.567.890-11;sim
+MAT-1002;Ana Costa Pereira;ana.pereira2@empresa.com;Analista de RH;Recursos Humanos;389.083.863-43;sim
+MAT-1090;Beatriz Mendonça;beatriz.mendonca@empresa.com;Analista de Suporte e Redes;Tecnologia da Informação;444.555.666-77;sim
+MAT-1018;Bruno Nunes Araújo;bruno.araujo18@empresa.com;Analista de Dados;Inteligência de Dados;382.997.376-48;sim
+MAT-1006;Camila Mendes Martins;camila.martins6@empresa.com;Analista de Vendas;Comercial;752.553.419-59;sim
+MAT-1019;Camila Oliveira Nunes;camila.nunes19@empresa.com;Gerente Operacional;Operações;656.670.106-07;sim
+MAT-1051;Camila Pereira;camila.pereira@empresa.com;Coordenadora de Marketing;Marketing;789.012.345-66;sim
+MAT-1045;Carlos Eduardo Silva;carlos.silva@empresa.com;Desenvolvedor Senior;Engenharia de Software;123.456.789-00;sim
+MAT-1029;Diego  do Nascimento Santana;diego.santana29@empresa.com;Gerente Operacional;Operações;808.412.411-04;sim
+MAT-1040;Diego Melo Barbosa;diego.barbosa40@empresa.com;Gerente de Contas;Comercial;656.482.366-54;sim
+MAT-1014;Diego Rodrigues Souza;diego.souza14@empresa.com;Gerente de Contas;Comercial;391.171.822-55;sim
+MAT-1009;Eduardo Lima Martins;eduardo.martins9@empresa.com;Analista de Suporte;Tecnologia da Informação;238.849.696-92;sim
+MAT-1021;Eduardo Rodrigues Marques;eduardo.marques21@empresa.com;QA / Testador;Garantia de Qualidade;178.108.013-50;sim
+MAT-1020;Felipe Santana Marques;felipe.marques20@empresa.com;Designer UX/UI;Produto e Design;133.387.262-36;sim
+MAT-1049;Fernanda Lima;fernanda.lima@empresa.com;Especialista em RH;Recursos Humanos;567.890.123-44;sim
+MAT-1030;Fernando Lima Martins;fernando.martins30@empresa.com;Desenvolvedor Pleno;Engenharia de Software;493.534.874-71;sim
+MAT-1038;Gabriel Oliveira Santos;gabriel.santos@empresa.com;Executivo de Contas Sênior;Comercial e Vendas;333.444.555-66;sim
+MAT-1052;Gabriel Rodrigues;gabriel.rodrigues@empresa.com;Engenheiro DevOps;Engenharia de Software;890.123.456-77;sim
+MAT-1053;Juliana Martins;juliana.martins@empresa.com;Analista Financeiro;Financeiro;901.234.567-88;sim
+MAT-1033;Juliana Souza Barbosa;juliana.barbosa33@empresa.com;Coordenador de Marketing;Marketing;505.331.586-80;sim
+MAT-1011;Larissa  do Nascimento Gomes;larissa.gomes11@empresa.com;Product Owner;Gestão de Produto;848.018.451-50;sim
+MAT-1004;Larissa Oliveira Carvalho;larissa.carvalho4@empresa.com;Coordenador Financeiro;Financeiro;594.078.161-68;sim
+MAT-1005;Letícia Monteiro Correia;leticia.correia5@empresa.com;Cientista de Dados;Inteligência de Dados;959.310.341-45;sim
+MAT-1037;Luana Ribeiro Silva;luana.silva37@empresa.com;Analista de Suporte;Tecnologia da Informação;142.940.196-62;sim
+MAT-1010;Lucas Fernandes Silveira;lucas.silveira@empresa.com;Engenheiro de Software Sênior;Desenvolvimento de Software;111.222.333-44;sim
+MAT-1048;Lucas Oliveira;lucas.oliveira@empresa.com;Designer UX/UI;Produto e Design;456.789.012-33;sim
+MAT-1044;Marcelo Araújo  do Nascimento;marcelo.donascimento44@empresa.com;Arquitetura de Software;Engenharia de Software;176.936.763-25;sim
+MAT-1047;Mariana Costa;mariana.costa@empresa.com;Gerente de Projetos;Gestão e Processos;345.678.901-22;sim
+MAT-1008;Mariana Santana Ribeiro;mariana.ribeiro8@empresa.com;Analista de Vendas;Comercial;641.395.376-47;sim
+MAT-1025;Mariana Souza Lima;mariana.lima@empresa.com;Product Designer / UX;Desenvolvimento de Software;222.333.444-55;sim
+MAT-1042;Matheus  do Nascimento Correia;matheus.correia42@empresa.com;Product Owner;Gestão de Produto;577.738.721-71;sim
+MAT-1003;Matheus Martins Santana;matheus.santana3@empresa.com;Desenvolvedor Senior;Engenharia de Software;026.542.351-14;sim
+MAT-1027;Monique Correia Barbosa;monique.barbosa27@empresa.com;Coordenador Financeiro;Financeiro;751.079.911-22;sim
+MAT-1023;Natália Soares Santana;natalia.santana23@empresa.com;Desenvolvedor Pleno;Engenharia de Software;872.343.098-29;sim
+MAT-1007;Patricia Cardoso Soares;patricia.soares7@empresa.com;Cientista de Dados;Inteligência de Dados;327.648.350-51;sim
+MAT-1035;Patricia Santana Lopes;patricia.lopes35@empresa.com;Cientista de Dados;Inteligência de Dados;160.733.754-17;sim
+MAT-1015;Paula Cardoso Alves;paula.alves15@empresa.com;Gerente de Contas;Comercial;489.638.346-03;sim
+MAT-1022;Priscila Araújo Pereira;priscila.pereira22@empresa.com;Especialista em Segurança;Segurança da Informação;602.606.474-54;sim
+MAT-1026;Priscila Nunes Teixeira;priscila.teixeira26@empresa.com;Arquitetura de Software;Engenharia de Software;985.435.346-07;sim
+MAT-1001;Renata Oliveira Silva;renata.silva1@empresa.com;Desenvolvedor Pleno;Engenharia de Software;433.218.196-43;sim
+MAT-1050;Roberto Alves;roberto.alves@empresa.com;Analista de Suporte;Tecnologia da Informação;678.901.234-55;sim
+MAT-1031;Roberto Correia Ferreira;roberto.ferreira31@empresa.com;Analista de Operações;Operações;400.524.278-20;sim
+MAT-1028;Rodrigo Melo Martins;rodrigo.martins28@empresa.com;Analista de Operações;Operações;251.354.278-99;sim
+MAT-1043;Sabrina Nunes Correia;sabrina.correia43@empresa.com;Desenvolvedor Pleno;Engenharia de Software;951.343.320-02;sim
+MAT-1034;Sérgio Lima Freitas;sergio.freitas34@empresa.com;Designer UX/UI;Produto e Design;322.602.563-50;sim
+MAT-1041;Sérgio Machado Alves;sergio.alves41@empresa.com;Especialista em Segurança;Segurança da Informação;994.680.443-35;sim
+MAT-1024;Sérgio Ribeiro Souza;sergio.souza24@empresa.com;QA / Testador;Garantia de Qualidade;097.882.081-93;sim
+MAT-1054;Thiago Barbosa;thiago.barbosa@empresa.com;Desenvolvedor Pleno;Engenharia de Software;012.345.678-99;sim
+MAT-1013;Thiago Carvalho Vieira;thiago.vieira13@empresa.com;Analista de Suporte;Tecnologia da Informação;288.095.701-03;sim
+MAT-1012;Vinícius Alves Gomes;vinicius.gomes12@empresa.com;Analista de Dados;Inteligência de Dados;048.281.489-65;sim
+MAT-1032;Vinícius Cardoso Silva;vinicius.silva32@empresa.com;Especialista em Segurança;Segurança da Informação;112.805.982-71;sim
+MAT-1039;Vinícius Silva Melo;vinicius.melo39@empresa.com;Gerente Operacional;Operações;835.615.951-20;sim
