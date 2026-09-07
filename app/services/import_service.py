@@ -30,6 +30,7 @@ from app.models.asset import Asset
 from app.models.movement import Movement
 from app.models.enums import MovementType
 from app.schemas.asset import AssetCreate
+from app.services.location_service import LocationService
 
 
 # Mapeamento de nomes amigáveis → valores do enum AssetCategory
@@ -373,6 +374,17 @@ def execute_import(
             purchase_date = _parse_date(row.get("data_aquisicao", ""))
             condition = _normalize_condition(row.get("condicao", ""))
             notes = row.get("notas", "").strip() or None
+            
+            # Resolver localização via coluna localização (alias)
+            location = None
+            location_name = None
+            loc_raw = row.get("localizacao") or row.get("localization") or ""
+            loc_raw = loc_raw.strip()
+            if loc_raw:
+                location_name = loc_raw
+                location = LocationService.get_by_name(db, loc_raw)
+                if location:
+                    location_name = location.name
 
             # Verificar duplicata
             existing = db.query(Asset).filter(Asset.tag == tag).first()
@@ -444,6 +456,7 @@ def execute_import(
                 condition=condition,
                 status=AssetStatus.AVAILABLE,
                 notes=notes,
+                location_id=location.id if location else None,
             )
             db.add(asset)
             db.flush()
@@ -455,9 +468,9 @@ def execute_import(
                 timestamp=datetime.now(),
                 origin_location_name="Importação CSV",
                 origin_custodian_name="Sistema",
-                destination_location_name="Estoque Central",
+                destination_location_name=location_name or "Estoque Central",
                 destination_custodian_name=None,
-                previous_status=None,
+                previous_status=asset.status,
                 new_status=AssetStatus.AVAILABLE,
                 previous_condition=None,
                 new_condition=condition,
