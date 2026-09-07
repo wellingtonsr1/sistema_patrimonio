@@ -173,6 +173,10 @@ def _validate_row(row: Dict[str, str], row_num: int) -> List[str]:
 
 
 # Mapeamento de nomes alternativos de colunas → nome canônico
+# nota: para localização, o parser não confia no alias porque a
+# normalização do nome da coluna deve preservar o valor exato (incluindo
+# acentuação) para a resolução via LocationService. O alias abaixo é
+# meramente indicativo.
 COLUMN_ALIASES = {
     # tombamento
     "tombamento": "tombamento",
@@ -378,7 +382,11 @@ def execute_import(
             # Resolver localização via coluna localização (alias)
             location = None
             location_name = None
-            loc_raw = row.get("localizacao") or row.get("localization") or ""
+            loc_raw = (
+                row.get("localizacao")
+                or row.get("localization")
+                or ""
+            )
             loc_raw = loc_raw.strip()
             if loc_raw:
                 location_name = loc_raw
