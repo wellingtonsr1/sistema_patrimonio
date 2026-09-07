@@ -202,11 +202,10 @@
 {% block scripts %}
 <script>
     // Cores dos gráficos adaptadas ao tema (claro/escuro)
-    function themeChartColors() {
-        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-        return dark
-            ? { tick: '#94a3b8', grid: '#2a2f3e' }
-            : { tick: '#6b7280', grid: '#f3f4f6' };
+    function themeChartColors() {                const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                return dark
+                    ? { tick: '#94a3b8', grid: '#2a2f3e' }
+                    : { tick: '#6B7280', grid: '#f3f4f6' };
     }
 
     let statusChart = null;
@@ -232,7 +231,7 @@
                         {{ stats.status_counts.in_maintenance }},
                         {{ stats.status_counts.written_off }}
                     ],
-                    backgroundColor: ['#059669', '#4f46e5', '#d97706', '#9ca3af'],
+                    backgroundColor: ['#16803C', '#A6192E', '#B7791F', '#6B7280'],
                     borderWidth: 0,
                     hoverOffset: 4,
                     borderRadius: 4
@@ -265,8 +264,8 @@
                 labels: catData.map(x => x.category),
                 datasets: [{
                     data: catData.map(x => x.count),
-                    backgroundColor: '#818cf8',
-                    hoverBackgroundColor: '#6366f1',
+                    backgroundColor: '#C83A4F',
+                    hoverBackgroundColor: '#A6192E',
                     borderRadius: 6,
                     maxBarThickness: 36
                 }]
