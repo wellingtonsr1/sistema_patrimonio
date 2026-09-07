@@ -5,10 +5,10 @@
   --font-base: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 
   /* Identidade institucional IPMJP */
-  --color-primary: #A6192E;
+  --color-primary: #ec5555;
   --color-primary-hover: #8F1527;
   --color-primary-active: #76111F;
-  --color-primary-light: #F8E9EC;
+  --color-primary-light: #d1c2c6;
   --color-primary-soft: #F2D9DE;
 
   /* Vermelho complementar */
@@ -16,20 +16,20 @@
   --color-secondary-light: #F5DDE2;
 
   /* Fundo geral - off-white quente */
-  --color-background: hsl(30, 17%, 95%);
+  --color-background: hsla(315, 15%, 95%, 0.164);
 
   /* Superfícies */
   --color-surface: #FFFFFF;
   --color-surface-secondary: #F8F7F6;
 
   /* Textos - grafite */
-  --color-text: #292727;
+  --color-text: #3f3838;
   --color-text-secondary: #686363;
   --color-text-muted: #8A8585;
 
   /* Bordas - neutras quentes */
-  --color-border: #E3DEDC;
-  --color-border-light: #ECE8E6;
+  --color-border: #C8C2C0;
+  --color-border-light: #E3DEDC;
 
   /* Estados semânticos */
   --color-success: #247A4B;
@@ -367,7 +367,7 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
 .btn-ghost {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
 }
 .btn-ghost:hover { background: var(--color-primary-light); border-color: var(--color-primary); color: var(--color-primary); }
 
@@ -676,7 +676,18 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
 }
 
 /* Smooth transitions for interactive elements */
+/* a, button { transition: all .12s var(--ease); } */
 a, button { transition: all .12s var(--ease); }
+
+/* Remove a cor azul de fundo ao focar/clicar nos itens do menu */
+.dropdown-item:hover,
+.dropdown-item:focus,
+.dropdown-item:active,
+.dropdown-item.active {
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+  outline: none;
+}
 
 /* ==========================================================================
    PRINT
@@ -729,7 +740,7 @@ a, button { transition: all .12s var(--ease); }
   --dark-surface-raised: #30292A;
 
   --dark-text: #F5F1F2;
-  --dark-text-secondary: #D0C8CA;
+  --dark-text-secondary: #f1504a;
   --dark-text-muted: #9E9497;
   --dark-text-faint: #847A7D;
 
@@ -737,7 +748,7 @@ a, button { transition: all .12s var(--ease); }
   --dark-border-light: #302A2C;
 
   /* Vermelho institucional no dark mode */
-  --dark-primary: #C43A4E;
+  --dark-primary: #fcf1f2;
   --dark-primary-hover: #D14A5D;
   --dark-primary-active: #E05A6D;
   --dark-primary-light: #3A2025;
@@ -913,7 +924,7 @@ a, button { transition: all .12s var(--ease); }
 [data-theme="dark"] .modal-footer { border-color: var(--dark-border); }
 
 [data-theme="dark"] .dropdown-menu { background: var(--dark-surface); border-color: var(--dark-border); }
-[data-theme="dark"] .dropdown-item { color: var(--dark-text-secondary); }
+[data-theme="dark"] .dropdown-item { color: var(--dark-text-muted); }
 [data-theme="dark"] .dropdown-item:hover { background: var(--dark-surface-secondary); color: var(--dark-text); }
 
 /* Dark mode toggle button */
@@ -1162,3 +1173,4 @@ main { animation: fadeInUp .3s var(--ease); }
   [data-theme="dark"] footer { background: #ffffff !important; }
   [data-theme="dark"] .table-striped tbody tr:nth-child(even) { background: #f8fafc !important; }
 }
+

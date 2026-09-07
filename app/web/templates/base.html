@@ -244,7 +244,7 @@
 
             {% if current_user %}
             <!-- User menu -->
-            <div class="dropdown ms-2">                    <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:#f5f1f2;border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="dropdown ms-2">                    <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:var(--color-primary);";border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle"></i>
                     <span class="d-none d-md-inline">{{ current_user.username }}</span>
                 </button>
