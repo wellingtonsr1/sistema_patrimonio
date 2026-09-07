@@ -118,18 +118,17 @@
             </a>
         </nav>
         <div class="sidebar-actions">
-            {% if can('movimentacao.criar') %}
-            <a href="/movements/new" class="btn btn-ghost btn-sm" style="color:#94a3b8;border-color:rgba(255,255,255,.12);">
-                <i class="bi bi-arrow-repeat"></i> Movimentar
-            </a>
-            {% endif %}
-            {% if can('patrimonio.criar') %}
-            <a href="/assets/new" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-lg"></i> Novo Bem
-            </a>
-            {% endif %}
-        </div>
-    </aside>
+            {% if can('movimentacao.criar') %}                    <a href="/movements/new" class="btn btn-ghost btn-sm" style="color:var(--color-primary);border-color:var(--color-border);">
+                        <i class="bi bi-arrow-repeat"></i> Movimentar
+                    </a>
+                    {% endif %}
+                    {% if can('patrimonio.criar') %}
+                    <a href="/assets/new" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg"></i> Novo Bem
+                    </a>
+                    {% endif %}
+                </div>
+            </aside>
 
     <!-- ===== Top Navbar ===== -->
     <nav class="navbar navbar-expand-xl app-navbar sticky-top no-print">
@@ -194,12 +193,11 @@
                         <a class="nav-link dropdown-toggle {% if active_tab == 'reports' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-file-earmark-text me-1"></i> Relatórios
                         </a>
-                        <ul class="dropdown-menu shadow-sm border-0 mt-2">
-                            <li><a class="dropdown-item py-2" href="/reports/inventory"><i class="bi bi-table text-primary me-2"></i>Inventário Geral</a></li>
-                            <li><a class="dropdown-item py-2" href="/reports/movements"><i class="bi bi-clock-history me-2" style="color:var(--color-primary);"></i>Trilha de Auditoria</a></li>
+                        <ul class="dropdown-menu shadow-sm border-0 mt-2">                        <li><a class="dropdown-item py-2" href="/reports/inventory"><i class="bi bi-table" style="color:var(--color-primary);"></i>Inventário Geral</a></li>
+                            <li><a class="dropdown-item py-2" href="/reports/movements"><i class="bi bi-clock-history" style="color:var(--color-primary);"></i>Trilha de Auditoria</a></li>
                             <li><a class="dropdown-item py-2" href="/reports/custodians"><i class="bi bi-people me-2" style="color:var(--green);"></i>Relação de Colaboradores</a></li>
-                            <li><hr class="dropdown-divider my-1"></li>
-                            <li><a class="dropdown-item py-2" href="/docs" target="_blank"><i class="bi bi-code-slash text-secondary me-2"></i>API Swagger</a></li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li><a class="dropdown-item py-2" href="/docs" target="_blank"><i class="bi bi-code-slash" style="color:var(--color-text-secondary);"></i>API Swagger</a></li>
                         </ul>
                     </li>
                     {% endif %}
@@ -210,7 +208,7 @@
                         </a>
                         <ul class="dropdown-menu shadow-sm border-0 mt-2">
                             {% if can('usuarios.visualizar') %}
-                            <li><a class="dropdown-item py-2" href="/admin/users"><i class="bi bi-person-gear text-primary me-2"></i>Usuários</a></li>
+                            <li><a class="dropdown-item py-2" href="/admin/users"><i class="bi bi-person-gear" style="color:var(--color-primary);"></i>Usuários</a></li>
                             {% endif %}
                             {% if can('perfis.visualizar') %}
                             <li><a class="dropdown-item py-2" href="/admin/roles"><i class="bi bi-shield-lock me-2" style="color:var(--color-primary);"></i>Perfis & Permissões</a></li>
@@ -219,7 +217,7 @@
                             <li><a class="dropdown-item py-2" href="/admin/ad"><i class="bi bi-hdd-network me-2" style="color:var(--color-primary);"></i>Integração AD</a></li>
                             {% endif %}
                             {% if can('auditoria.visualizar') %}
-                            <li><a class="dropdown-item py-2" href="/admin/audit"><i class="bi bi-journal-check me-2" style="color:var(--green);"></i>Auditoria</a></li>
+                            <li><a class="dropdown-item py-2" href="/admin/audit"><i class="bi bi-journal-check me-2" style="color:var(--color-primary);"></i>Auditoria</a></li>
                             {% endif %}
                         </ul>
                     </li>
@@ -228,11 +226,11 @@
 
                 <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
                     <a href="/ajuda" class="btn btn-ghost btn-sm text-nowrap" title="Ajuda e Manual" data-bs-toggle="tooltip" data-bs-placement="bottom" aria-label="Ajuda e Manual">
-                        <i class="bi bi-question-circle"></i>
-                        <span class="d-none d-lg-inline ms-1">Ajuda</span>
+                        <i class="bi bi-question-circle" style="color:var(--color-primary);"></i>
+                        <span class="d-none d-lg-inline ms-1" style="color:var(--color-primary);">Ajuda</span>
                     </a>
                     {% if can('movimentacao.criar') %}
-                    <a href="/movements/new" class="btn btn-ghost btn-sm text-nowrap" style="color:#cbd5e1;border-color:rgba(255,255,255,.15);">
+                    <a href="/movements/new" class="btn btn-ghost btn-sm text-nowrap" style="color:var(--color-primary);border-color:var(--color-border);">
                         <i class="bi bi-arrow-repeat"></i> Movimentar
                     </a>
                     {% endif %}
@@ -246,8 +244,7 @@
 
             {% if current_user %}
             <!-- User menu -->
-            <div class="dropdown ms-2">
-                <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:#cbd5e1;border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="dropdown ms-2">                    <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:#f5f1f2;border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle"></i>
                     <span class="d-none d-md-inline">{{ current_user.username }}</span>
                 </button>
@@ -259,7 +256,7 @@
                         {% if user_roles %}
                         <div class="mt-1">
                             {% for r in user_roles %}
-                            <span class="badge badge-soft-gray me-1" style="font-size:.65rem;">{{ r }}</span>
+                            <span class="badge badge-soft-gray me-1" style="font-size:.65rem;color:var(--color-text-secondary);">{{ r }}</span>
                             {% endfor %}
                         </div>
                         {% endif %}
@@ -267,12 +264,12 @@
                     <li><hr class="dropdown-divider my-1"></li>
                     <li>
                         <a class="dropdown-item py-2" href="/profile/password">
-                            <i class="bi bi-key me-2"></i>Alterar senha
+                            <i class="bi bi-key me-2" style="color:var(--color-primary);"></i>Alterar senha
                         </a>
                     </li>
                     <li>
                         <form method="post" action="/logout">
-                            <button type="submit" class="dropdown-item py-2 text-danger">
+                            <button type="submit" class="dropdown-item py-2" style="color:var(--color-danger);">
                                 <i class="bi bi-box-arrow-right me-2"></i>Sair
                             </button>
                         </form>

@@ -1,8 +1,6 @@
 /* ==========================================================================
    SisPatrimônio Pro — Design System v2 (IPMJP Identity)
-   ========================================================================== */
-
-/* ---- Variables ---- */
+   ========================================================================== *//* ---- Variables ---- */
 :root {
   --font-base: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 
@@ -11,13 +9,14 @@
   --color-primary-hover: #8F1527;
   --color-primary-active: #76111F;
   --color-primary-light: #F8E9EC;
+  --color-primary-soft: #F2D9DE;
 
   /* Vermelho complementar */
   --color-secondary: #C43A4E;
   --color-secondary-light: #F5DDE2;
 
   /* Fundo geral - off-white quente */
-  --color-background: #F4F2F1;
+  --color-background: hsl(30, 17%, 95%);
 
   /* Superfícies */
   --color-surface: #FFFFFF;
@@ -36,7 +35,7 @@
   --color-success: #247A4B;
   --color-warning: #A66A13;
   --color-danger: #B42332;
-  --color-info: #59636E;
+  --color-info: #6B6870;
 
   /* Mapeamento para variáveis existentes (compatibilidade) */
   --c-primary: var(--color-primary);
@@ -48,6 +47,9 @@
   --c-primary-200: #D4A8AD;
   --c-primary-text: var(--color-primary);
 
+  /* Liga o esquema de cores do navegador para que controles nativos (select, date,
+     scrollbars) sigam o tema claro/dark via as variáveis CSS equivalents (por padrão
+     o navegador mapeia para cores quentes, evitando azul-padrão). */
   --c-bg: var(--color-background);
   --c-surface: var(--color-surface);
   --c-surface-alt: var(--color-surface-secondary);
@@ -100,7 +102,6 @@
   --ease: cubic-bezier(.4,0,.2,1);
 
   /* Garante que controles nativos (select, date, scrollbars) sigam o tema claro */
-  color-scheme: light;
 }
 
 /* ---- Reset & Base ---- */
@@ -267,12 +268,12 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
 }
 
 .table tbody tr { transition: background .12s var(--ease); }
-.table tbody tr:hover { background: #F5F4F3; }
+.table tbody tr:hover { background: var(--color-primary-light); }
 .table tbody tr:last-child td { border-bottom: none; }
 
 /* Striped variant */
 .table-striped tbody tr:nth-child(even) { background: var(--color-surface-secondary); }
-.table-striped tbody tr:nth-child(even):hover { background: #F5F4F3; }
+.table-striped tbody tr:nth-child(even):hover { background: var(--color-primary-light); }
 
 /* ==========================================================================
    STATUS PILLS
@@ -722,46 +723,53 @@ a, button { transition: all .12s var(--ease); }
   color-scheme: dark;
 
   /* Dark mode - paleta quente escura */
-  --dark-background: #171515;
-  --dark-surface: #211E1F;
-  --dark-surface-secondary: #292526;
-  --dark-surface-raised: #312C2D;
+  --dark-background: #181516;
+  --dark-surface: #211D1E;
+  --dark-surface-secondary: #282324;
+  --dark-surface-raised: #30292A;
 
-  --dark-text: #E5E2E1;
-  --dark-text-secondary: #A8A2A1;
-  --dark-text-muted: #8C8685;
-  --dark-text-faint: #6B6564;
+  --dark-text: #F5F1F2;
+  --dark-text-secondary: #D0C8CA;
+  --dark-text-muted: #9E9497;
+  --dark-text-faint: #847A7D;
 
-  --dark-border: #3D3838;
-  --dark-border-light: #2D2929;
+  --dark-border: #3A3335;
+  --dark-border-light: #302A2C;
 
   /* Vermelho institucional no dark mode */
   --dark-primary: #C43A4E;
-  --dark-primary-hover: #D24A5D;
-  --dark-primary-light: #3D2528;
+  --dark-primary-hover: #D14A5D;
+  --dark-primary-active: #E05A6D;
+  --dark-primary-light: #3A2025;
+  --dark-primary-soft: #45242A;
 
   --dark-primary-50: rgba(196, 58, 78, .2);
   --dark-primary-100: rgba(196, 58, 78, .3);
   --dark-primary-200: rgba(196, 58, 78, .4);
 
   /* Cores semânticas no dark mode */
-  --dark-success: #3DB85C;
-  --dark-warning: #E5A05D;
-  --dark-danger: #E54B5A;
-  --dark-info: #8B9DAF;
+  --dark-success: #52A875;
+  --dark-warning: #D0A04B;
+  --dark-danger: #E05A68;
+  --dark-info: #AAA3A7;
 
-  --dark-green-bg: rgba(61, 184, 92, .15);
-  --dark-green-border: rgba(61, 184, 92, .3);
-  --dark-amber-bg: rgba(229, 160, 93, .15);
-  --dark-amber-border: rgba(229, 160, 93, .3);
-  --dark-danger-bg: rgba(229, 75, 90, .15);
-  --dark-danger-border: rgba(229, 75, 90, .3);
-  --dark-info-bg: rgba(139, 157, 175, .15);
-  --dark-info-border: rgba(139, 157, 175, .3);
+  /* Liga o esquema de cores do navegador para que controles nativos (select, date,
+     scrollbars) sigam o tema claro/dark via as variáveis CSS equivalents (por padrão
+     o navegador mapeia para cores quentes, evitando azul-padrão). */
+  --dark-green-bg: rgba(82, 168, 117, .15);
+  --dark-green-border: rgba(82, 168, 117, .3);
+  --dark-amber-bg: rgba(208, 160, 75, .15);
+  --dark-amber-border: rgba(208, 160, 75, .3);
+  --dark-danger-bg: rgba(224, 90, 104, .15);
+  --dark-danger-border: rgba(224, 90, 104, .3);
+  --dark-info-bg: rgba(170, 163, 167, .15);
+  --dark-info-border: rgba(170, 163, 167, .3);
 
-  --dark-gray: #8C8685;
-  --dark-gray-bg: rgba(140, 134, 133, .15);
-  --dark-gray-border: rgba(140, 134, 133, .3);
+  --dark-gray: var(--dark-text-muted);
+  --dark-gray-bg: rgba(158, 148, 151, .15);
+  --dark-gray-border: rgba(158, 148, 151, .3);
+
+  color-scheme: dark;
 
   /* Mapeamento para compatibilidade */
   --c-bg: var(--dark-background);
