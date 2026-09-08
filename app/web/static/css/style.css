@@ -107,6 +107,14 @@
 /* ---- Reset & Base ---- */
 *,*::before,*::after { box-sizing: border-box; }
 
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: var(--font-base);
   background: var(--color-background);
@@ -124,8 +132,18 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
-/* Firefox (API padrão — mantém o mesmo visual do Chrome) */
+/* Firefox */
 html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
+
+/* ==========================================================================
+   MAIN CONTAINER & CONTAINMENT
+   ========================================================================== */
+main {
+  width: 100%;
+  max-width: 1700px;
+  min-width: 0;
+  box-sizing: border-box;
+}
 
 /* ==========================================================================
    NAVBAR
@@ -135,6 +153,27 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
   border-bottom: none;
   padding: .6rem 1.5rem;
   backdrop-filter: blur(12px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.app-navbar .container-fluid {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+.app-navbar .navbar-collapse {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.app-navbar .navbar-nav {
+  min-width: 0;
+  flex-shrink: 1;
+  flex-wrap: wrap;
 }
 
 .navbar-brand {
@@ -142,6 +181,14 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
   font-size: 1.1rem;
   letter-spacing: -.02em;
   color: #fff !important;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.navbar-brand span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .navbar-brand-icon {
@@ -154,6 +201,7 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
   color: #fff;
   font-size: .9rem;
   box-shadow: 0 2px 8px rgba(166, 25, 46, .3);
+  flex-shrink: 0;
 }
 
 .nav-link {
@@ -167,6 +215,40 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
 }
 .nav-link:hover { color: #fff !important; background: rgba(255,255,255,.12); }
 .nav-link.active { color: #fff !important; background: var(--color-primary-hover) !important; font-weight: 600; }
+
+/* User Menu & Buttons in Navbar */
+.app-navbar .dropdown {
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.app-navbar .dropdown .dropdown-toggle {
+  min-width: 0;
+  padding: .35rem .55rem !important;
+  gap: .25rem !important;
+}
+
+/* Oculta apenas o texto com nome de usuário do botão da Navbar (preserva o ícone e a seta do dropdown) */
+.app-navbar .dropdown .dropdown-toggle > span {
+  display: none !important;
+}
+
+/* Remove o item "Movimentar" especificamente do Header/Navbar superior */
+.app-navbar a[href="/movements/new"] {
+  display: none !important;
+}
+
+/* Oculta o texto "Ajuda" do botão da Navbar (preserva o ícone de ajuda + tooltip) */
+.app-navbar a[href="/ajuda"] {
+  padding: .35rem .55rem !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-navbar a[href="/ajuda"] > span {
+  display: none !important;
+}
 
 /* ==========================================================================
    CARDS
@@ -237,16 +319,33 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* ==========================================================================
-   TABLES
+   TABLES & RESPONSIVE WRAPPERS
    ========================================================================== */
+.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 0;
+  display: block;
+}
+
 .table {
   --bs-table-bg: transparent;
   color: var(--color-text);
   font-size: .85rem;
   margin-bottom: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .table thead th {
@@ -265,6 +364,8 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
   padding: .75rem 1rem;
   vertical-align: middle;
   border-bottom: 1px solid var(--color-border-light);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .table tbody tr { transition: background .12s var(--ease); }
@@ -324,6 +425,11 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);
   letter-spacing: .03em;
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
 }
 
 .badge-soft-primary { background: var(--c-primary-50); color: var(--c-primary-text); border: 1px solid var(--c-primary-200); }
@@ -345,6 +451,7 @@ html { scrollbar-color: var(--scrollbar) transparent; scrollbar-width: thin; }
   align-items: center;
   gap: .35rem;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 .btn-primary {
@@ -708,12 +815,38 @@ a, button { transition: all .12s var(--ease); }
 }
 
 /* ==========================================================================
-   RESPONSIVE
+   RESPONSIVE (Screen Breakpoints: 1920, 1440, 1366, 1280, 1024, 768, 600, 480, 375, 320)
    ========================================================================== */
+
+/* Notebooks & Laptops (1200px to 1499.98px): Compact nav elements so they fit comfortably */
+@media (min-width: 1200px) and (max-width: 1499.98px) {
+  .app-navbar .nav-link {
+    padding: .4rem .55rem !important;
+    font-size: .81rem;
+  }
+  .app-navbar .navbar-nav {
+    gap: .15rem !important;
+  }
+  .app-navbar .d-flex {
+    gap: .35rem !important;
+  }
+  .app-navbar .btn-sm {
+    padding: .35rem .65rem;
+    font-size: .78rem;
+  }
+}
+
 @media (max-width: 991.98px) {
   .card-kpi { padding: 1rem 1.25rem; }
   .card-kpi .kpi-value { font-size: 1.45rem; }
   .page-header { flex-direction: column; align-items: flex-start; }
+  .page-header .d-flex { width: 100%; justify-content: flex-start; }
+}
+
+@media (max-width: 767.98px) {
+  .card { width: 100%; min-width: 0; }
+  .page-header-title { font-size: 1.2rem; }
+  canvas { height: auto !important; }
 }
 
 @media (max-width: 575.98px) {
@@ -723,8 +856,22 @@ a, button { transition: all .12s var(--ease); }
   main { padding-left: .9rem !important; padding-right: .9rem !important; }
   .detail-hero { padding: 1rem; }
   .card.p-4 { padding: 1.1rem !important; }
-  .card-header-clean { padding: .75rem 1rem; }
-  .term-paper, .term-container { padding: 20px 16px; }
+  .card-header-clean { padding: .75rem 1rem; flex-direction: column; align-items: flex-start; }
+  .term-paper, .term-container { padding: 20px 16px !important; width: 100% !important; margin: 10px 0 !important; }
+}
+
+@media (max-width: 479.98px) {
+  .page-header .d-flex { flex-direction: column; width: 100%; }
+  .page-header .d-flex .btn:not(.btn-icon) { width: 100%; justify-content: center; }
+  .tag-badge { max-width: 140px; }
+}
+
+@media (max-width: 374.98px) {
+  .app-navbar { padding: .4rem .6rem; }
+  .navbar-brand { font-size: .95rem; }
+  .navbar-brand span { max-width: 100px; }
+  .card-kpi { padding: .85rem 1rem; }
+  .card-kpi .kpi-value { font-size: 1.25rem; }
 }
 
 /* ==========================================================================
