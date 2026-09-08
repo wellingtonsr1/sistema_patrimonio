@@ -11,12 +11,12 @@
     <div class="d-flex gap-2">
         {% if can('relatorios.exportar') %}
         <a href="/reports/custodians" class="btn btn-ghost">
-            <i class="bi bi-file-earmark-excel me-1"></i> Exportar CSV
+            <i class="bi bi-upload me-1"></i> Exportar CSV
         </a>
         {% endif %}
         {% if can('colaboradores.criar') %}
         <a href="/custodians/import" class="btn btn-ghost">
-            <i class="bi bi-filetype-csv"></i> Importar CSV
+            <i class="bi bi-download me-1"></i> Importar CSV
         </a>
         <a href="/custodians/new" class="btn btn-primary">
             <i class="bi bi-person-plus me-1"></i> Cadastrar Colaborador
