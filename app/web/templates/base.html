@@ -30,7 +30,7 @@
     <!-- QRCode.js -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
-<body>
+<body style="padding-top: 90px;">
     <!-- ===== Mobile Sidebar ===== -->
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
     <aside class="mobile-sidebar" id="mobileSidebar" style="display:none;">
@@ -131,23 +131,21 @@
             </aside>
 
     <!-- ===== Top Navbar ===== -->
-    <nav class="navbar navbar-expand-xl app-navbar sticky-top no-print">
-        <div class="container-fluid px-lg-4">
+    <nav class="navbar navbar-expand-xl app-navbar fixed-top no-print">
+        <div class="container-fluid px-lg-1">
             <!-- Hamburger (mobile) -->
             <button class="sidebar-hamburger me-2" onclick="openSidebar()" aria-label="Abrir menu">
                 <i class="bi bi-list"></i>
             </button>
 
             <a class="navbar-brand d-flex align-items-center gap-2" href="/">
-                <span class="navbar-brand-icon">
-                    <i class="bi bi-box-seam"></i>
-                </span>
+                <img src="/static/img/Logo%20IPMjp.png" alt="" class="navbar-brand-logo">
                 <span>SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;">PRO</span></span>
             </a>
 
             <!-- Desktop nav collapse -->
-            <div class="collapse navbar-collapse ms-lg-3" id="navbarMain">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav mb-2 mb-lg-0 gap-1">
                     <li class="nav-item">
                         <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
                             <i class="bi bi-grid-1x2 me-1"></i> Dashboard
@@ -224,7 +222,11 @@
                     {% endif %}
                 </ul>
 
-                <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+            </div>
+
+            <!-- Right-side actions: Ajuda, usuário e alternador de tema -->
+            <div class="navbar-actions d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 navbar-quick-actions">
                     <a href="/ajuda" class="btn btn-ghost btn-sm text-nowrap" title="Ajuda e Manual" data-bs-toggle="tooltip" data-bs-placement="bottom" aria-label="Ajuda e Manual">
                         <i class="bi bi-question-circle" style="color:var(--color-primary);"></i>
                         <span class="d-none d-lg-inline ms-1" style="color:var(--color-primary);">Ajuda</span>
@@ -234,17 +236,10 @@
                         <i class="bi bi-arrow-repeat"></i> Movimentar
                     </a>
                     {% endif %}
-                    {% if can('patrimonio.criar') %}
-                    <a href="/assets/new" class="btn btn-primary btn-sm text-nowrap">
-                        <i class="bi bi-plus-lg"></i> Novo Bem
-                    </a>
-                    {% endif %}
                 </div>
-            </div>
-
-            {% if current_user %}
-            <!-- User menu -->
-            <div class="dropdown ms-2">                    <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:var(--color-primary);";border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
+                {% if current_user %}
+                <!-- User menu -->
+                <div class="dropdown">                    <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:var(--color-primary);";border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle"></i>
                     <span class="d-none d-md-inline">{{ current_user.username }}</span>
                 </button>
@@ -278,15 +273,16 @@
             </div>
             {% endif %}
 
-            <!-- Dark mode toggle (always visible) -->
-            <button class="dark-toggle ms-2" id="darkToggle" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Alternar tema">
-                <i class="bi bi-moon-stars" id="darkIcon"></i>
-            </button>
+                <!-- Dark mode toggle (always visible) -->
+                <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Alternar tema">
+                    <i class="bi bi-moon-stars" id="darkIcon"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
     <!-- Main Container -->
-    <main class="container-fluid py-4 px-lg-5" style="max-width:1700px;">
+    <main class="container-fluid py-4 px-lg-5 mx-auto" style="max-width:90%;">
         {% block content %}{% endblock %}
     </main>
 

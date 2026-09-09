@@ -159,6 +159,8 @@ main {
 }
 
 .app-navbar .container-fluid {
+  display: flex;
+  align-items: center;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -166,29 +168,58 @@ main {
 }
 
 .app-navbar .navbar-collapse {
+  /* Cresce para ocupar toda a largura disponível entre a marca e as ações,
+     permitindo que o menu seja distribuído de forma uniforme. */
+  flex: 1 1 auto;
   min-width: 0;
-  flex-shrink: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .app-navbar .navbar-nav {
   min-width: 0;
-  flex-shrink: 1;
+  /* O menu preenche toda a largura da coluna central (cresce conforme
+     o espaço disponível entre a marca e as ações). */
+  flex: 1 1 auto;
   flex-wrap: wrap;
+  /* Distribui os itens com espaçamento uniforme ao longo da largura
+     disponível (cada item mantém sua largura natural). */
+  justify-content: space-evenly;
+  /* Gap mínimo apenas quando os itens quebram para uma segunda linha;
+     a distribuição principal é feita pelo space-evenly. */
+  gap: .25rem;
 }
 
+/* Coluna da marca (esquerda): 1fr igual à coluna das ações à direita.
+   Isso garante que o menu central permaneça realmente centralizado,
+   independentemente da largura da logo ou dos controles laterais. */
 .navbar-brand {
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: -.02em;
   color: #fff !important;
   min-width: 0;
-  flex-shrink: 1;
+  flex: 1 1 0;
+  /* Marca empilhada: logo acima do nome, ambos centralizados entre si */
+  flex-direction: column;
+  row-gap: .3rem !important;   /* sobrepõe o gap-2 (.5rem) do HTML para o empilhamento */
+  text-align: center;
 }
 
 .navbar-brand span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Logo institucional da marca (acima do nome, empilhada e centralizada) */
+.navbar-brand-logo {
+  height: 32px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .navbar-brand-icon {
@@ -248,6 +279,42 @@ main {
 
 .app-navbar a[href="/ajuda"] > span {
   display: none !important;
+}
+
+/* Área de ações à direita (Ajuda, usuário e tema): coluna 1fr com conteúdo
+   alinhado à direita, equilibrando a coluna da logo para centralizar o menu. */
+.app-navbar .navbar-actions {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(.35rem, .6vw, .8rem);
+}
+
+/* Em telas grandes (>=1200px): marca e ações mantêm largura natural nas
+   bordas e o menu central (navbar-collapse) cresce para preencher o espaço,
+   distribuindo os itens uniformemente (space-evenly). Em telas menores o
+   comportamento atual é preservado (marca/ações crescem para preencher). */
+@media (min-width: 1200px) {
+  .navbar-brand { flex: 0 0 auto; margin-right: 0; }
+  .app-navbar .navbar-actions { flex: 0 0 auto; }
+}
+
+/* Em telas de notebook estreitas (1200px-1365px) todo o conteúdo não cabe
+   em uma única linha: a marca e as ações ficam na primeira linha e o menu
+   central ocupa a linha seguinte, distribuído com espaçamento uniforme
+   (space-evenly) em toda a largura disponível. A partir de 1366px tudo
+   volta a ficar em uma única linha. */
+@media (min-width: 1200px) and (max-width: 1365.98px) {
+  .app-navbar .navbar-collapse { flex: 0 0 100%; order: 3; }
+  .app-navbar .navbar-actions { order: 2; }
+}
+
+/* A partir de 1366px o container não quebra linha: marca, menu e ações
+   ficam sempre em uma única linha (o conteúdo cabe confortavelmente). */
+@media (min-width: 1366px) {
+  .app-navbar .container-fluid { flex-wrap: nowrap; }
 }
 
 /* ==========================================================================
@@ -814,6 +881,7 @@ a, button { transition: all .12s var(--ease); }
   main { padding: 0 !important; }
 }
 
+
 /* ==========================================================================
    RESPONSIVE (Screen Breakpoints: 1920, 1440, 1366, 1280, 1024, 768, 600, 480, 375, 320)
    ========================================================================== */
@@ -821,11 +889,11 @@ a, button { transition: all .12s var(--ease); }
 /* Notebooks & Laptops (1200px to 1499.98px): Compact nav elements so they fit comfortably */
 @media (min-width: 1200px) and (max-width: 1499.98px) {
   .app-navbar .nav-link {
-    padding: .4rem .55rem !important;
-    font-size: .81rem;
+    padding: .35rem .5rem !important;
+    font-size: .78rem;
   }
   .app-navbar .navbar-nav {
-    gap: .15rem !important;
+    gap: .25rem !important;
   }
   .app-navbar .d-flex {
     gap: .35rem !important;
@@ -1243,6 +1311,8 @@ a, button { transition: all .12s var(--ease); }
      O botão do usuário e o toggle de tema ficam fora do collapse e
      continuam visíveis em telas pequenas (acesso a perfil/logout). */
   .app-navbar .navbar-collapse { display: none !important; }
+  /* Mantém o comportamento atual: Ajuda não aparece na barra superior em telas pequenas */
+  .app-navbar .navbar-quick-actions { display: none !important; }
 }
 
 /* ==========================================================================
