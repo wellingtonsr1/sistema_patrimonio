@@ -180,7 +180,9 @@ main {
   flex-shrink: 1;
   flex-wrap: wrap;
   justify-content: center;
-  gap: clamp(.15rem, .5vw, .6rem);
+  /* Espaçamento uniforme entre os menus, proporcional à largura disponível:
+     cresce com a viewport e encolhe de forma controlada em telas menores. */
+  gap: clamp(.35rem, 1.25vw, 1.5rem);
 }
 
 /* Coluna da marca (esquerda): 1fr igual à coluna das ações à direita.
@@ -193,12 +195,25 @@ main {
   color: #fff !important;
   min-width: 0;
   flex: 1 1 0;
+  /* Marca empilhada: logo acima do nome, ambos centralizados entre si */
+  flex-direction: column;
+  row-gap: .3rem !important;   /* sobrepõe o gap-2 (.5rem) do HTML para o empilhamento */
+  text-align: center;
 }
 
 .navbar-brand span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Logo institucional da marca (acima do nome, empilhada e centralizada) */
+.navbar-brand-logo {
+  height: 32px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .navbar-brand-icon {
@@ -268,7 +283,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: .5rem;
+  gap: clamp(.35rem, .6vw, .8rem);
 }
 
 /* ==========================================================================
@@ -846,7 +861,7 @@ a, button { transition: all .12s var(--ease); }
     font-size: .81rem;
   }
   .app-navbar .navbar-nav {
-    gap: .15rem !important;
+    gap: clamp(.15rem, .55vw, .4rem) !important;
   }
   .app-navbar .d-flex {
     gap: .35rem !important;
