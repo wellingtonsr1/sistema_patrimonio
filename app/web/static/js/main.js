@@ -161,3 +161,43 @@ function animateValue(el, start, end, duration) {
 
     requestAnimationFrame(update);
 }
+
+/**
+ * Alterna a visibilidade de um campo de senha e atualiza
+ * o estado visual e de acessibilidade do botão.
+ *
+ * @param {string} inputId - ID do campo de senha.
+ * @param {string} iconId - ID do elemento do ícone.
+ */
+function togglePasswordVisibility(
+    inputId = 'password',
+    iconId = 'toggleIcon'
+) {
+    const passwordInput = document.getElementById(inputId);
+    const toggleIcon = document.getElementById(iconId);
+
+    if (!passwordInput || !toggleIcon) {
+        return;
+    }
+
+    const isPassword = passwordInput.type === 'password';
+
+    passwordInput.type = isPassword ? 'text' : 'password';
+
+    toggleIcon.classList.toggle('bi-eye', !isPassword);
+    toggleIcon.classList.toggle('bi-eye-slash', isPassword);
+
+    const toggleButton = toggleIcon.closest('button');
+
+    if (toggleButton) {
+        toggleButton.setAttribute(
+            'aria-label',
+            isPassword ? 'Ocultar senha' : 'Mostrar senha'
+        );
+
+        toggleButton.setAttribute(
+            'aria-pressed',
+            String(isPassword)
+        );
+    }
+}
