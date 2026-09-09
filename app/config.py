@@ -13,7 +13,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'patrimonio.db'
 APP_NAME = "SisPatrimônio Pro"
 APP_DESCRIPTION = "Sistema Integrado de Gestão Patrimonial e Fluxo de Movimentação de Equipamentos"
 APP_VERSION = "1.0.0"
-APP_HOST = os.getenv("APP_HOST", "192.168.0.9")
+APP_HOST = os.getenv("APP_HOST", "10.39.0.16")
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 
 # Organização padrão para emissão de termos
