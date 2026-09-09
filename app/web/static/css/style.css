@@ -159,6 +159,8 @@ main {
 }
 
 .app-navbar .container-fluid {
+  display: flex;
+  align-items: center;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -166,23 +168,31 @@ main {
 }
 
 .app-navbar .navbar-collapse {
+  flex: 0 1 auto;
   min-width: 0;
-  flex-shrink: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .app-navbar .navbar-nav {
   min-width: 0;
   flex-shrink: 1;
   flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(.15rem, .5vw, .6rem);
 }
 
+/* Coluna da marca (esquerda): 1fr igual à coluna das ações à direita.
+   Isso garante que o menu central permaneça realmente centralizado,
+   independentemente da largura da logo ou dos controles laterais. */
 .navbar-brand {
   font-weight: 700;
   font-size: 1.1rem;
   letter-spacing: -.02em;
   color: #fff !important;
   min-width: 0;
-  flex-shrink: 1;
+  flex: 1 1 0;
 }
 
 .navbar-brand span {
@@ -248,6 +258,17 @@ main {
 
 .app-navbar a[href="/ajuda"] > span {
   display: none !important;
+}
+
+/* Área de ações à direita (Ajuda, usuário e tema): coluna 1fr com conteúdo
+   alinhado à direita, equilibrando a coluna da logo para centralizar o menu. */
+.app-navbar .navbar-actions {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .5rem;
 }
 
 /* ==========================================================================
@@ -1243,6 +1264,8 @@ a, button { transition: all .12s var(--ease); }
      O botão do usuário e o toggle de tema ficam fora do collapse e
      continuam visíveis em telas pequenas (acesso a perfil/logout). */
   .app-navbar .navbar-collapse { display: none !important; }
+  /* Mantém o comportamento atual: Ajuda não aparece na barra superior em telas pequenas */
+  .app-navbar .navbar-quick-actions { display: none !important; }
 }
 
 /* ==========================================================================

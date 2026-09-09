@@ -146,8 +146,8 @@
             </a>
 
             <!-- Desktop nav collapse -->
-            <div class="collapse navbar-collapse ms-lg-3" id="navbarMain">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav mb-2 mb-lg-0 gap-1">
                     <li class="nav-item">
                         <a class="nav-link {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
                             <i class="bi bi-grid-1x2 me-1"></i> Dashboard
@@ -224,7 +224,11 @@
                     {% endif %}
                 </ul>
 
-                <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+            </div>
+
+            <!-- Right-side actions: Ajuda, usuário e alternador de tema -->
+            <div class="navbar-actions d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 navbar-quick-actions">
                     <a href="/ajuda" class="btn btn-ghost btn-sm text-nowrap" title="Ajuda e Manual" data-bs-toggle="tooltip" data-bs-placement="bottom" aria-label="Ajuda e Manual">
                         <i class="bi bi-question-circle" style="color:var(--color-primary);"></i>
                         <span class="d-none d-lg-inline ms-1" style="color:var(--color-primary);">Ajuda</span>
@@ -235,11 +239,9 @@
                     </a>
                     {% endif %}
                 </div>
-            </div>
-
-            {% if current_user %}
-            <!-- User menu -->
-            <div class="dropdown ms-2">                    <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:var(--color-primary);";border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
+                {% if current_user %}
+                <!-- User menu -->
+                <div class="dropdown">                    <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:var(--color-primary);";border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle"></i>
                     <span class="d-none d-md-inline">{{ current_user.username }}</span>
                 </button>
@@ -273,10 +275,11 @@
             </div>
             {% endif %}
 
-            <!-- Dark mode toggle (always visible) -->
-            <button class="dark-toggle ms-2" id="darkToggle" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Alternar tema">
-                <i class="bi bi-moon-stars" id="darkIcon"></i>
-            </button>
+                <!-- Dark mode toggle (always visible) -->
+                <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Alternar tema">
+                    <i class="bi bi-moon-stars" id="darkIcon"></i>
+                </button>
+            </div>
         </div>
     </nav>
 
