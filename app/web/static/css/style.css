@@ -168,7 +168,9 @@ main {
 }
 
 .app-navbar .navbar-collapse {
-  flex: 0 1 auto;
+  /* Cresce para ocupar toda a largura disponível entre a marca e as ações,
+     permitindo que o menu seja distribuído de forma uniforme. */
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -177,12 +179,16 @@ main {
 
 .app-navbar .navbar-nav {
   min-width: 0;
-  flex-shrink: 1;
+  /* O menu preenche toda a largura da coluna central (cresce conforme
+     o espaço disponível entre a marca e as ações). */
+  flex: 1 1 auto;
   flex-wrap: wrap;
-  justify-content: center;
-  /* Espaçamento uniforme entre os menus, proporcional à largura disponível:
-     cresce com a viewport e encolhe de forma controlada em telas menores. */
-  gap: clamp(.35rem, 1.25vw, 1.5rem);
+  /* Distribui os itens com espaçamento uniforme ao longo da largura
+     disponível (cada item mantém sua largura natural). */
+  justify-content: space-evenly;
+  /* Gap mínimo apenas quando os itens quebram para uma segunda linha;
+     a distribuição principal é feita pelo space-evenly. */
+  gap: .25rem;
 }
 
 /* Coluna da marca (esquerda): 1fr igual à coluna das ações à direita.
@@ -284,6 +290,31 @@ main {
   align-items: center;
   justify-content: flex-end;
   gap: clamp(.35rem, .6vw, .8rem);
+}
+
+/* Em telas grandes (>=1200px): marca e ações mantêm largura natural nas
+   bordas e o menu central (navbar-collapse) cresce para preencher o espaço,
+   distribuindo os itens uniformemente (space-evenly). Em telas menores o
+   comportamento atual é preservado (marca/ações crescem para preencher). */
+@media (min-width: 1200px) {
+  .navbar-brand { flex: 0 0 auto; margin-right: 0; }
+  .app-navbar .navbar-actions { flex: 0 0 auto; }
+}
+
+/* Em telas de notebook estreitas (1200px-1365px) todo o conteúdo não cabe
+   em uma única linha: a marca e as ações ficam na primeira linha e o menu
+   central ocupa a linha seguinte, distribuído com espaçamento uniforme
+   (space-evenly) em toda a largura disponível. A partir de 1366px tudo
+   volta a ficar em uma única linha. */
+@media (min-width: 1200px) and (max-width: 1365.98px) {
+  .app-navbar .navbar-collapse { flex: 0 0 100%; order: 3; }
+  .app-navbar .navbar-actions { order: 2; }
+}
+
+/* A partir de 1366px o container não quebra linha: marca, menu e ações
+   ficam sempre em uma única linha (o conteúdo cabe confortavelmente). */
+@media (min-width: 1366px) {
+  .app-navbar .container-fluid { flex-wrap: nowrap; }
 }
 
 /* ==========================================================================
@@ -850,6 +881,7 @@ a, button { transition: all .12s var(--ease); }
   main { padding: 0 !important; }
 }
 
+
 /* ==========================================================================
    RESPONSIVE (Screen Breakpoints: 1920, 1440, 1366, 1280, 1024, 768, 600, 480, 375, 320)
    ========================================================================== */
@@ -857,11 +889,11 @@ a, button { transition: all .12s var(--ease); }
 /* Notebooks & Laptops (1200px to 1499.98px): Compact nav elements so they fit comfortably */
 @media (min-width: 1200px) and (max-width: 1499.98px) {
   .app-navbar .nav-link {
-    padding: .4rem .55rem !important;
-    font-size: .81rem;
+    padding: .35rem .5rem !important;
+    font-size: .78rem;
   }
   .app-navbar .navbar-nav {
-    gap: clamp(.15rem, .55vw, .4rem) !important;
+    gap: .25rem !important;
   }
   .app-navbar .d-flex {
     gap: .35rem !important;
