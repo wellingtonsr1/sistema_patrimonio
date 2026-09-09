@@ -3,3 +3,9 @@
 
 # Testes
 tests/
+
+# Banco de dados SQLite do SisPatrimônio
+*.db
+*.sqlite
+*.sqlite3
+data/patrimonio.db
