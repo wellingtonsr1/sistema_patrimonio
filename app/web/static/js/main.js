@@ -184,8 +184,8 @@ function togglePasswordVisibility(
 
     passwordInput.type = isPassword ? 'text' : 'password';
 
-    toggleIcon.classList.toggle('bi-eye', !isPassword);
-    toggleIcon.classList.toggle('bi-eye-slash', isPassword);
+    toggleIcon.classList.toggle('bi-eye-slash', !isPassword);
+    toggleIcon.classList.toggle('bi-eye', isPassword);
 
     const toggleButton = toggleIcon.closest('button');
 
