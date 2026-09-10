@@ -30,7 +30,12 @@
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label fw-semibold">Senha <span class="text-danger">*</span></label>
-                    <input type="password" name="password" class="form-control" required autocomplete="new-password">
+                    <div class="input-group">
+                        <input type="password" id="password" name="password" class="form-control" required autocomplete="new-password">
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility('password', 'toggleIcon')">
+                            <i class="bi bi-eye-slash" id="toggleIcon"></i>
+                        </button>
+                    </div>
                     <div class="form-text">Mínimo de 8 caracteres. Nunca armazenada em texto puro.</div>
                 </div>
                 <div class="col-12 col-md-6">

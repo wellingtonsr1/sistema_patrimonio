@@ -1356,6 +1356,39 @@ main { animation: fadeInUp .3s var(--ease); }
   cursor: default;
 }
 
+/* ============================================================================
+   RESET PASSWORD FORM - Layout corrigido para layout vertical
+   ============================================================================ */
+.reset-password-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.reset-password-form .input-group {
+    width: 100%;
+    flex-wrap: nowrap;
+}
+
+.reset-password-form .input-group .form-control {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.reset-password-form .input-group .btn-outline-secondary {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.reset-password-form .btn-warning {
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+.reset-password-form .form-text {
+    margin-top: 0.25rem;
+}
+
 /* ==========================================================================
    PRINT — garante impressão legível mesmo com tema escuro ativo
    ========================================================================== */

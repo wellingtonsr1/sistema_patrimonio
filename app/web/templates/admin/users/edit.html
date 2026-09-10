@@ -130,14 +130,16 @@
         {% if can('usuarios.editar') and user.auth_provider != 'ad' %}
         <div class="card p-4">
             <div class="section-divider mb-3"><i class="bi bi-key"></i> Redefinir Senha</div>
-            <form method="post" action="/admin/users/{{ user.id }}/reset-password">
+            <form method="post" action="/admin/users/{{ user.id }}/reset-password" class="reset-password-form">
                 <div class="mb-3">
-                    <label class="form-label fw-semibold" d-block>Nova Senha</label>
-                    <input type="password" id="new_password" name="new_password" class="form-control" required autocomplete="new-password" minlength="8">
-                    <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword" onclick="togglePasswordVisibility('new_password', 'toggleNewIcon')">
-                        <i class="bi bi-eye-slash" id="toggleNewIcon"></i>
-                    </button>
-                    <div class="form-text" mb-1>Mínimo de 8 caracteres. As sessões existentes serão invalidadas.</div>
+                    <label class="form-label fw-semibold" for="new_password">Nova Senha</label>
+                    <div class="input-group">
+                        <input type="password" id="new_password" name="new_password" class="form-control" required autocomplete="new-password" minlength="8">
+                        <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword" onclick="togglePasswordVisibility('new_password', 'toggleNewIcon')">
+                            <i class="bi bi-eye-slash" id="toggleNewIcon"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">Mínimo de 8 caracteres. As sessões existentes serão invalidadas.</div>
                 </div>
                 <button type="submit" class="btn btn-warning w-100"
                         onclick="return confirm('Redefinir a senha deste usuário? Ele precisará efetuar novo login.')">
