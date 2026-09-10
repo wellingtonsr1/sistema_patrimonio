@@ -1,14 +1,28 @@
 {% extends "base.html" %}
 
-{% block title %}Novo Colaborador | SisPatrimônio Pro{% endblock %}
+{% set is_edit = custodian is defined and custodian %}
+
+{% block title %}{% if is_edit %}Editar {{ custodian.name }}{% else %}Novo Colaborador{% endif %} | SisPatrimônio Pro{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-12 col-md-8">
         <div class="page-header">
             <div>
-                <h3 class="page-header-title">Cadastrar Colaborador</h3>
-                <p class="page-header-subtitle">Adicione um novo colaborador ao sistema para permitir alocação de equipamentos.</p>
+                <h3 class="page-header-title">
+                    {% if is_edit %}
+                    <i class="bi bi-person-gear me-1"></i> Editar Colaborador
+                    {% else %}
+                    Cadastrar Colaborador
+                    {% endif %}
+                </h3>
+                <p class="page-header-subtitle">
+                    {% if is_edit %}
+                    Atualize os dados cadastrais de {{ custodian.name }}. Os bens sob custódia permanecem vinculados.
+                    {% else %}
+                    Adicione um novo colaborador ao sistema para permitir alocação de equipamentos.
+                    {% endif %}
+                </p>
             </div>
             <a href="/custodians" class="btn btn-ghost">
                 <i class="bi bi-arrow-left me-1"></i> Voltar
@@ -21,40 +35,61 @@
             <span>{{ error }}</span>
         </div>
         {% endif %}
+        {% if success %}
+        <div class="alert alert-success d-flex align-items-center gap-2 mb-4">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>{{ success }}</span>
+        </div>
+        {% endif %}
 
+        {% if is_edit %}
+        <form method="post" action="/custodians/{{ custodian.id }}/edit" class="card p-4">
+        {% else %}
         <form method="post" action="/custodians/new" class="card p-4">
+        {% endif %}
             <div class="row g-3">
                 <div class="col-12 col-md-6">
                     <label class="form-label">Matrícula / Código Funcional <span class="text-danger">*</span></label>
+                    {% if is_edit %}
+                    <input type="text" name="registration_code_disabled" class="form-control font-monospace" value="{{ custodian.registration_code }}" readonly>
+                    <div class="form-text">A matrícula identifica o colaborador no sistema e não pode ser alterada. Os bens permanecem vinculados a ela.</div>
+                    {% else %}
                     <input type="text" name="registration_code" class="form-control font-monospace" placeholder="Ex: MAT-1045" required>
+                    {% endif %}
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label">Nome Completo <span class="text-danger">*</span></label>
-                    <input type="text" name="name" class="form-control" placeholder="Ex: Carlos Eduardo Silva" required>
+                    <input type="text" name="name" class="form-control" placeholder="Ex: Carlos Eduardo Silva" value="{{ custodian.name if is_edit else '' }}" required>
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label">E-mail Corporativo <span class="text-danger">*</span></label>
-                    <input type="email" name="email" class="form-control" placeholder="carlos.silva@empresa.com" required>
+                    <input type="email" name="email" class="form-control" placeholder="carlos.silva@empresa.com" value="{{ custodian.email if is_edit else '' }}" required>
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label">CPF</label>
-                    <input type="text" name="cpf" class="form-control" placeholder="000.000.000-00">
+                    <input type="text" name="cpf" class="form-control" placeholder="000.000.000-00" value="{{ custodian.cpf if is_edit and custodian.cpf else '' }}">
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label">Cargo / Função <span class="text-danger">*</span></label>
-                    <input type="text" name="role" class="form-control" placeholder="Ex: Desenvolvedor Senior" required>
+                    <input type="text" name="role" class="form-control" placeholder="Ex: Desenvolvedor Senior" value="{{ custodian.role if is_edit else '' }}" required>
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label">Departamento / Setor <span class="text-danger">*</span></label>
-                    <input type="text" name="department" class="form-control" placeholder="Ex: Engenharia de Software" required>
+                    <input type="text" name="department" class="form-control" placeholder="Ex: Engenharia de Software" value="{{ custodian.department if is_edit else '' }}" required>
                 </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
                 <a href="/custodians" class="btn btn-ghost px-4">Cancelar</a>
+                {% if is_edit %}
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-check-lg me-1"></i> Salvar Alterações
+                </button>
+                {% else %}
                 <button type="submit" class="btn btn-primary px-4 fw-bold">
                     <i class="bi bi-check-lg me-1"></i> Salvar Colaborador
                 </button>
+                {% endif %}
             </div>
         </form>
     </div>

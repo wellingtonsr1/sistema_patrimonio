@@ -13,7 +13,7 @@ from app.config import APP_NAME, APP_VERSION, COMPANY_NAME, COMPANY_CNPJ, COMPAN
 from app.models.enums import AssetStatus, AssetCondition, AssetCategory, MovementType, MaintenanceType, MaintenanceStatus
 from app.schemas.asset import AssetCreate, AssetUpdate
 from app.schemas.movement import MovementCreate, MovementFilter
-from app.schemas.custodian import CustodianCreate
+from app.schemas.custodian import CustodianCreate, CustodianUpdate
 from app.schemas.location import LocationCreate
 from app.schemas.maintenance import MaintenanceCreate, MaintenanceUpdate
 from app.services.asset_service import AssetService
@@ -771,6 +771,80 @@ def create_custodian_form(
         description=f"Cadastro do colaborador {custodian.name} ({custodian.registration_code})",
     )
     return RedirectResponse(url="/custodians", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@web_router.get("/custodians/{custodian_id}/edit", response_class=HTMLResponse, dependencies=[Depends(require_permission("colaboradores.editar"))])
+def form_edit_custodian(request: Request, custodian_id: int, error: Optional[str] = None, success: Optional[str] = None, db: Session = Depends(get_db)):
+    """Exibe o formulário de edição de um colaborador existente.
+
+    A matrícula (registration_code) é o identificador do colaborador e é
+    exibida somente para leitura: ela não pode ser alterada pela interface
+    de edição, preservando o vínculo dos bens custodiados.
+    """
+    custodian = CustodianService.get_by_id(db, custodian_id)
+    if not custodian:
+        raise HTTPException(status_code=404, detail="Colaborador não encontrado")
+    return templates.TemplateResponse(
+        request=request,
+        name="custodians/form.html",
+        context={
+            "custodian": custodian,
+            "error": error or "",
+            "success": success or "",
+            "active_tab": "custodians"
+        }
+    )
+
+
+@web_router.post("/custodians/{custodian_id}/edit", dependencies=[Depends(require_permission("colaboradores.editar"))])
+def update_custodian_form(
+    request: Request,
+    custodian_id: int,
+    name: str = Form(...),
+    email: str = Form(...),
+    cpf: Optional[str] = Form(None),
+    role: str = Form(...),
+    department: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Salva a edição de um colaborador existente.
+
+    Recebe apenas os campos editáveis (nome, e-mail, CPF, cargo e
+    departamento). O identificador (id/matrícula) NÃO é aceito do formulário,
+    portanto nunca pode ser alterado pela interface. A atualização é feita
+    in-place pelo ID, preservando os relacionamentos de custódia dos bens.
+    """
+    before_c = CustodianService.get_by_id(db, custodian_id)
+    if not before_c:
+        raise HTTPException(status_code=404, detail="Colaborador não encontrado")
+    before = _custodian_audit_snapshot(before_c)
+    update_data = CustodianUpdate(
+        name=name,
+        email=email,
+        cpf=cpf or None,
+        role=role,
+        department=department,
+    )
+    try:
+        custodian = CustodianService.update(db, custodian_id, update_data)
+    except ValueError as err:
+        return RedirectResponse(url=f"/custodians/{custodian_id}/edit?error={quote(str(err))}", status_code=status.HTTP_303_SEE_OTHER)
+    if not custodian:
+        raise HTTPException(status_code=404, detail="Colaborador não encontrado")
+    write_change_audit(
+        db,
+        user=request.state.user,
+        action=ACTION_UPDATE,
+        module="Colaboradores",
+        resource="Custodian",
+        resource_ref=custodian.registration_code,
+        resource_id=custodian.id,
+        ip_address=_client_ip(request),
+        before=before,
+        after=_custodian_audit_snapshot(custodian),
+        description=f"Edição do colaborador {custodian.name} ({custodian.registration_code})",
+    )
+    return RedirectResponse(url=f"/custodians/{custodian_id}/edit?success={quote('Colaborador atualizado com sucesso.')}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @web_router.get("/custodians/import", response_class=HTMLResponse, dependencies=[Depends(require_permission("colaboradores.criar"))])

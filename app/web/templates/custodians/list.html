@@ -58,9 +58,16 @@
                         </span>
                     </td>
                     <td class="text-end">
-                        <a href="/custodians/{{ c.id }}" class="btn btn-ghost btn-sm">
-                            <i class="bi bi-laptop me-1"></i> Ver Bens
-                        </a>
+                        <div class="d-flex gap-1 justify-content-end">
+                            {% if can('colaboradores.editar') %}
+                            <a href="/custodians/{{ c.id }}/edit" class="btn btn-ghost btn-icon" title="Editar Colaborador">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                            <a href="/custodians/{{ c.id }}" class="btn btn-ghost btn-sm">
+                                <i class="bi bi-laptop me-1"></i> Ver Bens
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
