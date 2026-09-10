@@ -11,6 +11,7 @@ from pathlib import Path
 from app.database import get_db
 from app.config import APP_NAME, APP_VERSION, COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS, AUTH_COOKIE_NAME
 from app.models.enums import AssetStatus, AssetCondition, AssetCategory, MovementType, MaintenanceType, MaintenanceStatus
+from app.models.location import Location
 from app.schemas.asset import AssetCreate, AssetUpdate
 from app.schemas.movement import MovementCreate, MovementFilter
 from app.schemas.custodian import CustodianCreate, CustodianUpdate
@@ -291,6 +292,12 @@ def list_assets(
     category_filter: Optional[str] = None,
     location_id: Optional[str] = Query(None),
     custodian_id: Optional[str] = Query(None),
+    brand_filter: Optional[str] = Query(None),
+    model_filter: Optional[str] = Query(None),
+    department_filter: Optional[str] = Query(None),
+    maintenance_filter: Optional[str] = Query(None),
+    purchase_date_from: Optional[str] = Query(None),
+    purchase_date_to: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     # Converter parâmetros de string para int (ou None se vazio/inválido)
@@ -299,13 +306,26 @@ def list_assets(
     
     status_enum = AssetStatus(status_filter) if status_filter and status_filter in [e.value for e in AssetStatus] else None
     cat_enum = AssetCategory(category_filter) if category_filter and category_filter in [e.value for e in AssetCategory] else None
-
+    
+    # Converter datas
+    from datetime import datetime as dt
+    date_from = dt.strptime(purchase_date_from, "%Y-%m-%d") if purchase_date_from else None
+    date_to = dt.strptime(purchase_date_to, "%Y-%m-%d") if purchase_date_to else None
+    
     assets, total = AssetService.get_all(
         db, search=search, status=status_enum, category=cat_enum,
-        location_id=loc_id, custodian_id=cust_id, limit=200
+        location_id=loc_id, custodian_id=cust_id,
+        brand=brand_filter, model=model_filter,
+        department=department_filter, maintenance_status=maintenance_filter,
+        purchase_date_from=date_from, purchase_date_to=date_to,
+        limit=200
     )
     locations = LocationService.get_all(db)
     custodians = CustodianService.get_all(db, active_only=True)
+    
+    # Obter lista única de departamentos para o filtro
+    departments = db.query(Location.department).distinct().filter(Location.department != None).all()
+    departments = [d[0] for d in departments if d[0]]
 
     return templates.TemplateResponse(
         request=request,
@@ -317,9 +337,16 @@ def list_assets(
             "selected_status": status_filter or "",
             "selected_category": category_filter or "",
             "selected_location": loc_id or "",
-            "selected_custodian": custodian_id or "",
+            "selected_custodian": cust_id or "",
+            "selected_brand": brand_filter or "",
+            "selected_model": model_filter or "",
+            "selected_department": department_filter or "",
+            "selected_maintenance": maintenance_filter or "",
+            "selected_date_from": purchase_date_from or "",
+            "selected_date_to": purchase_date_to or "",
             "locations": locations,
             "custodians": custodians,
+            "departments": departments,
             "categories": AssetCategory,
             "statuses": AssetStatus,
             "active_tab": "assets"

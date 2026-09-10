@@ -51,6 +51,12 @@
                 {% endfor %}
             </select>
         </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <input type="text" name="brand_filter" class="form-control" placeholder="Marca" value="{{ selected_brand }}">
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <input type="text" name="model_filter" class="form-control" placeholder="Modelo" value="{{ selected_model }}">
+        </div>
         <div class="col-12 col-md-4 col-lg-2">
             <select name="location_id" class="form-select">
                 <option value="">Local: Todos</option>
@@ -59,9 +65,38 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-12 col-md-2 col-lg-2 d-flex gap-2">
+        <div class="col-12 col-md-3 col-lg-2">
+            <select name="custodian_id" class="form-select">
+                <option value="">Colaborador: Todos</option>
+                {% for c in custodians %}
+                <option value="{{ c.id }}" {% if selected_custodian|string == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <select name="department_filter" class="form-select">
+                <option value="">Setor: Todos</option>
+                {% for dept in departments %}
+                <option value="{{ dept }}" {% if selected_department == dept %}selected{% endif %}>{{ dept }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <select name="maintenance_filter" class="form-select">
+                <option value="">Manutenção: Todas</option>
+                <option value="open" {% if selected_maintenance == 'open' %}selected{% endif %}>Em Manutenção</option>
+                <option value="closed" {% if selected_maintenance == 'closed' %}selected{% endif %}>Sem Manutenção Aberta</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-1">
+            <input type="date" name="purchase_date_from" class="form-control" value="{{ selected_date_from }}" placeholder="De">
+        </div>
+        <div class="col-6 col-md-3 col-lg-1">
+            <input type="date" name="purchase_date_to" class="form-control" value="{{ selected_date_to }}" placeholder="Até">
+        </div>
+        <div class="col-12 col-md-6 col-lg-4 d-flex gap-2 align-items-end">
             <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrar</button>
-            {% if search or selected_status or selected_category or selected_location %}
+            {% if search or selected_status or selected_category or selected_location or selected_custodian or selected_department or selected_maintenance or selected_date_from or selected_date_to %}
             <a href="/assets" class="btn btn-ghost" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
             {% endif %}
         </div>
