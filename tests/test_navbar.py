@@ -33,7 +33,7 @@ def test_navbar_three_areas_render(client):
     # Área esquerda: logo/marca
     assert 'class="navbar-brand' in page
     assert 'class="navbar-brand-logo"' in page
-    assert "/static/img/Logo%20IPMjp.png" in page
+    assert "/static/img/Logo_IPMjp.png" in page
     assert "SisPatrimônio" in page
     assert "PRO" in page
 
@@ -97,7 +97,7 @@ def test_navbar_css_served_with_layout_rules(client):
     assert ".app-navbar .navbar-actions" in css
     assert ".navbar-brand" in css
     assert "flex: 1 1 0" in css
-    assert "clamp(.35rem, 1.25vw, 1.5rem)" in css
+    assert "clamp(.35rem, .6vw, .8rem)" in css
     # Ajuda continua oculta na barra superior em telas pequenas (< 1200px)
     assert ".app-navbar .navbar-quick-actions" in css
     assert ".navbar-quick-actions { display: none !important; }" in css
