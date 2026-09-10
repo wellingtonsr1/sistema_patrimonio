@@ -192,11 +192,11 @@
                         <a class="nav-link dropdown-toggle {% if active_tab == 'reports' %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-file-earmark-text me-1"></i> Relatórios
                         </a>
-                        <ul class="dropdown-menu shadow-sm border-0 mt-2">                        <li><a class="dropdown-item py-2" href="/reports/inventory"><i class="bi bi-table" me-2 style="color:var(--color-primary);"></i>Inventário Geral</a></li>
-                            <li><a class="dropdown-item py-2" href="/reports/movements"><i class="bi bi-clock-history" style="color:var(--color-primary);"></i>Trilha de Auditoria</a></li>
-                            <li><a class="dropdown-item py-2" href="/reports/custodians"><i class="bi bi-people style="color:var(--green);"></i>Relação de Colaboradores</a></li>
+                        <ul class="dropdown-menu shadow-sm border-0 mt-2">                        <li><a class="dropdown-item py-2" href="/reports/inventory"><i class="bi bi-table me-1" style="color:var(--color-primary);"></i>Inventário Geral</a></li>
+                            <li><a class="dropdown-item py-2" href="/reports/movements"><i class="bi bi-clock-history me-1" style="color:var(--color-primary);"></i>Trilha de Auditoria</a></li>
+                            <li><a class="dropdown-item py-2" href="/reports/custodians"><i class="bi bi-people me-1" style="color:var(--green);"></i>Relação de Colaboradores</a></li>
                                     <li><hr class="dropdown-divider my-1"></li>
-                                    <li><a class="dropdown-item py-2" href="/docs" target="_blank"><i class="bi bi-code-slash" style="color:var(--color-text-secondary);"></i>API Swagger</a></li>
+                                    <li><a class="dropdown-item py-2" href="/docs" target="_blank"><i class="bi bi-code-slash me-1" style="color:var(--color-text-secondary);"></i>API Swagger</a></li>
                         </ul>
                     </li>
                     {% endif %}
@@ -207,16 +207,16 @@
                         </a>
                         <ul class="dropdown-menu shadow-sm border-0 mt-2">
                             {% if can('usuarios.visualizar') %}
-                            <li><a class="dropdown-item py-2" href="/admin/users"><i class="bi bi-person-gear" style="color:var(--color-primary);"></i>Usuários</a></li>
+                            <li><a class="dropdown-item py-2" href="/admin/users"><i class="bi bi-person-gear me-1" style="color:var(--color-primary);"></i>Usuários</a></li>
                             {% endif %}
                             {% if can('perfis.visualizar') %}
-                            <li><a class="dropdown-item py-2" href="/admin/roles"><i class="bi bi-shield-lock me-2" style="color:var(--color-primary);"></i>Perfis & Permissões</a></li>
+                            <li><a class="dropdown-item py-2" href="/admin/roles"><i class="bi bi-shield-lock me-1" style="color:var(--color-primary);"></i>Perfis & Permissões</a></li>
                             {% endif %}
                             {% if can('usuarios.editar') and can('perfis.editar') %}
-                            <li><a class="dropdown-item py-2" href="/admin/ad"><i class="bi bi-hdd-network me-2" style="color:var(--color-primary);"></i>Integração AD</a></li>
+                            <li><a class="dropdown-item py-2" href="/admin/ad"><i class="bi bi-hdd-network me-1" style="color:var(--color-primary);"></i>Integração AD</a></li>
                             {% endif %}
                             {% if can('auditoria.visualizar') %}
-                            <li><a class="dropdown-item py-2" href="/admin/audit"><i class="bi bi-journal-check me-2" style="color:var(--color-primary);"></i>Auditoria</a></li>
+                            <li><a class="dropdown-item py-2" href="/admin/audit"><i class="bi bi-journal-check me-1" style="color:var(--color-primary);"></i>Auditoria</a></li>
                             {% endif %}
                         </ul>
                     </li>
