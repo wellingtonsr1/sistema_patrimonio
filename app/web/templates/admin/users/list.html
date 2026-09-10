@@ -102,8 +102,8 @@
                     </td>
                     <td class="text-end text-nowrap">
                         {% if can('usuarios.editar') %}
-                        <a href="/admin/users/{{ u.id }}/edit" class="btn btn-ghost btn-sm">
-                            <i class="bi bi-pencil me-1"></i> Editar
+                        <a href="/admin/users/{{ u.id }}/edit" class="btn btn-ghost btn-icon" title="Editar Usuário">
+                            <i class="bi bi-pencil"></i>
                         </a>
                         {% endif %}
                     </td>
