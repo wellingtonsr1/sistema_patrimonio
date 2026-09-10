@@ -123,6 +123,107 @@
     </div>
 </div>
 
+<!-- Distribuição por Localização -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6">
+        <div class="card p-4">
+            <div class="section-divider mb-3">
+                <i class="bi bi-geo-alt"></i> Distribuição por Localização
+            </div>
+            {% if stats.location_distribution %}
+            <div style="min-height:220px;">
+                <canvas id="locationChart"></canvas>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-geo-alt empty-state-icon"></i>
+                <div class="empty-state-title">Nenhuma localização cadastrada</div>
+                <div class="empty-state-text">O patrimônio não está vinculado a locais.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+        <div class="card p-4">
+            <div class="section-divider mb-3">
+                <i class="bi bi-people"></i> Distribuição por Departamento
+            </div>
+            {% if stats.department_distribution %}
+            <div style="min-height:220px;">
+                <canvas id="departmentChart"></canvas>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-people empty-state-icon"></i>
+                <div class="empty-state-title">Nenhum departamento cadastrado</div>
+                <div class="empty-state-text">O patrimônio não está vinculado a departamentos.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Alertas e Inconsistências -->
+{% if stats.inconsistencies %}
+<div class="row g-3 mb-4">
+    {% for inc in stats.inconsistencies %}
+    <div class="col-12 col-md-6">
+        <div class="card {{ 'border-danger' if inc.type == 'warning' else 'border-info' }}">
+            <div class="card-header-clean d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="fw-bold mb-0" style="font-size:.9rem;">
+                        <i class="bi {{ inc.icon }} me-2"></i>{{ inc.title }}
+                        <span class="badge badge-soft-{{ 'danger' if inc.type == 'warning' else 'primary' }} ms-2">{{ inc.count }}</span>
+                    </h6>
+                </div>
+            </div>
+            {% if inc.item_list %}
+            <div class="table-responsive mt-3">
+                <table class="table align-middle table-sm">
+                    <thead>
+                        <tr>
+                            <th>Tag</th>
+                            <th>Equipamento</th>
+                            <th>Observação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in inc.item_list %}
+                        <tr>
+                            <td><span class="tag-badge">{{ item.tag }}</span></td>
+                            <td class="text-truncate" style="max-width:200px;">{{ item.name }}</td>
+                            <td class="text-muted small">{{ item.detail }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-muted p-3 text-center">
+                <i class="bi {{ inc.icon }}" style="font-size:1.5rem;"></i>
+                <div class="mt-2">{{ inc.count }} itens com essa inconsistência</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card mb-4">
+    <div class="card-header-clean">
+        <h6 class="fw-bold mb-0" style="font-size:.9rem;">
+            <i class="bi bi-check-circle me-2" style="color:var(--green);"></i>Integridade do Patrimônio
+        </h6>
+    </div>
+    <div class="p-4 text-center">
+        <i class="bi bi-shield-check" style="font-size:2rem;color:var(--green);"></i>
+        <div class="mt-2 fw-semibold" style="color:var(--green);">Nenhuma inconsistência detectada</div>
+        <div class="text-muted small mt-1">Todos os equipamentos possuem localização e responsável atribuídos.</div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Recent Movements -->
 <div class="card">
     <div class="card-header-clean">
@@ -210,15 +311,21 @@
 
     let statusChart = null;
     let categoryChart = null;
+    let locationChart = null;
+    let departmentChart = null;
 
     function initCharts() {
         const statusCtx = document.getElementById('statusChart');
         const catCtx = document.getElementById('categoryChart');
+        const locCtx = document.getElementById('locationChart');
+        const deptCtx = document.getElementById('departmentChart');
         if (!statusCtx || !catCtx) return;
         const c = themeChartColors();
 
         if (statusChart) { statusChart.destroy(); }
         if (categoryChart) { categoryChart.destroy(); }
+        if (locationChart) { locationChart.destroy(); }
+        if (departmentChart) { departmentChart.destroy(); }
 
         statusChart = new Chart(statusCtx.getContext('2d'), {
             type: 'doughnut',
@@ -280,6 +387,62 @@
                 plugins: { legend: { display: false } }
             }
         });
+
+        // Gráfico de distribuição por localização
+        const locData = {{ stats.location_distribution | tojson }};
+        if (locCtx && locData.length > 0) {
+            locationChart = new Chart(locCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: locData.map(x => x.location),
+                    datasets: [{
+                        data: locData.map(x => x.count),
+                        backgroundColor: '#247A4B',
+                        hoverBackgroundColor: '#1C5E3A',
+                        borderRadius: 4,
+                        maxBarThickness: 32
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.tick, stepSize: 1, font: { family: 'Plus Jakarta Sans', size: 10 } } },
+                        y: { grid: { display: false }, ticks: { color: c.tick, font: { family: 'Plus Jakarta Sans', size: 10 } } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Gráfico de distribuição por departamento
+        const deptData = {{ stats.department_distribution | tojson }};
+        if (deptCtx && deptData.length > 0) {
+            departmentChart = new Chart(deptCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: deptData.map(x => x.department),
+                    datasets: [{
+                        data: deptData.map(x => x.count),
+                        backgroundColor: '#A66A13',
+                        hoverBackgroundColor: '#825510',
+                        borderRadius: 4,
+                        maxBarThickness: 32
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: c.grid }, ticks: { color: c.tick, stepSize: 1, font: { family: 'Plus Jakarta Sans', size: 10 } } },
+                        y: { grid: { display: false }, ticks: { color: c.tick, font: { family: 'Plus Jakarta Sans', size: 10 } } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
     }
 
     initCharts();

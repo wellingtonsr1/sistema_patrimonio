@@ -29,6 +29,23 @@ class DashboardService:
             Maintenance.status == MaintenanceStatus.IN_PROGRESS
         ).scalar() or 0
 
+        # Distribuição por localização
+        location_distribution = db.query(
+            Location.name, func.count(Asset.id)
+        ).outerjoin(Asset, Asset.location_id == Location.id).group_by(Location.id).order_by(func.count(Asset.id).desc()).all()
+
+        # Distribuição por departamento
+        department_distribution = db.query(
+            Location.department, func.count(Asset.id)
+        ).outerjoin(Asset, Asset.location_id == Location.id).group_by(Location.department).order_by(func.count(Asset.id).desc()).all()
+
+        # Converte resultados para dicionários
+        location_dist_data = [{"location": name, "count": count} for name, count in location_distribution]
+        department_dist_data = [{"department": dept, "count": count} for dept, count in department_distribution]
+
+        # Inconsistências patrimoniais
+        inconsistencies = DashboardService._get_inconsistencies(db)
+
         # Últimas 8 movimentações para feed de atividades
         recent_movements = db.query(Movement).order_by(desc(Movement.timestamp)).limit(8).all()
 
@@ -49,6 +66,9 @@ class DashboardService:
                 {"category": cat.value if hasattr(cat, 'value') else str(cat), "count": count}
                 for cat, count in category_counts.items()
             ],
+            "location_distribution": location_dist_data,
+            "department_distribution": department_dist_data,
+            "inconsistencies": inconsistencies,
             "total_custodians": total_custodians,
             "total_locations": total_locations,
             "total_movements": total_movements,
@@ -56,3 +76,47 @@ class DashboardService:
             "recent_movements": recent_movements,
             "recent_assets": recent_assets
         }
+
+    @staticmethod
+    def _get_inconsistencies(db: Session) -> list:
+        """Identifica inconsistências patrimoniais baseadas nos dados reais.
+
+        Verifica:
+        - Equipamentos sem localização
+        - Equipamentos sem responsável (custodian)
+        """
+        inconsistencies = []
+
+        # Equipamentos sem localização
+        assets_without_location = db.query(
+            Asset.id, Asset.tag, Asset.name
+        ).filter(
+            Asset.location_id == None
+        ).all()
+
+        if assets_without_location:
+            inconsistencies.append({
+                "type": "warning",
+                "icon": "bi-geo-alt",
+                "title": "Equipamentos sem localização",
+                "count": len(assets_without_location),
+                "item_list": [{"tag": a.tag, "name": a.name, "detail": "Sem localização cadastrada"} for a in assets_without_location[:10]]
+            })
+
+        # Equipamentos sem responsável
+        assets_without_custodian = db.query(
+            Asset.id, Asset.tag, Asset.name
+        ).filter(
+            Asset.custodian_id == None
+        ).all()
+
+        if assets_without_custodian:
+            inconsistencies.append({
+                "type": "info",
+                "icon": "bi-person",
+                "title": "Equipamentos sem responsável",
+                "count": len(assets_without_custodian),
+                "item_list": [{"tag": a.tag, "name": a.name, "detail": "Sem responsável atribuído"} for a in assets_without_custodian[:10]]
+            })
+
+        return inconsistencies

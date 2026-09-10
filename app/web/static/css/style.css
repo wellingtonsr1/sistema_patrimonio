@@ -480,6 +480,12 @@ main {
 .status-pill-BAIXADO::before { background: var(--gray); }
 
 /* ==========================================================================
+   BORDER UTILITIES
+   ========================================================================== */
+border-danger { border-color: var(--color-danger) !important; }
+border-info { border-color: var(--color-info) !important; }
+
+/* ==========================================================================
    BADGES (generic)
    ========================================================================== */
 .tag-badge {
