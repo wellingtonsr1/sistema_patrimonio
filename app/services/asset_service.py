@@ -31,12 +31,28 @@ class AssetService:
             search_filter = f"%{search.strip()}%"
             query = query.filter(
                 or_(
+                    # Campos do equipamento
                     Asset.tag.ilike(search_filter),
                     Asset.name.ilike(search_filter),
                     Asset.brand.ilike(search_filter),
                     Asset.model.ilike(search_filter),
                     Asset.serial_number.ilike(search_filter),
-                    Asset.invoice_number.ilike(search_filter)
+                    Asset.invoice_number.ilike(search_filter),
+                    # Colaborador relacionado
+                    Asset.custodian.has(Custodian.name.ilike(search_filter)),
+                    # Localização relacionada (todos os campos)
+                    Asset.location.has(
+                        or_(
+                            Location.name.ilike(search_filter),
+                            Location.branch.ilike(search_filter),
+                            Location.building.ilike(search_filter),
+                            Location.floor.ilike(search_filter),
+                            Location.room.ilike(search_filter),
+                            Location.department.ilike(search_filter),
+                            Location.manager_name.ilike(search_filter),
+                            Location.description.ilike(search_filter)
+                        )
+                    )
                 )
             )
 

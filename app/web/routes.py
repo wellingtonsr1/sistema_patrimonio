@@ -2,7 +2,7 @@ from typing import Optional
 from datetime import datetime
 import logging
 from urllib.parse import quote
-from fastapi import APIRouter, Depends, Request, Form, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, Request, Form, HTTPException, UploadFile, File, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -289,16 +289,20 @@ def list_assets(
     search: Optional[str] = None,
     status_filter: Optional[str] = None,
     category_filter: Optional[str] = None,
-    location_id: Optional[int] = None,
-    custodian_id: Optional[int] = None,
+    location_id: Optional[str] = Query(None),
+    custodian_id: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
+    # Converter parâmetros de string para int (ou None se vazio/inválido)
+    loc_id = int(location_id) if location_id and location_id.strip().isdigit() else None
+    cust_id = int(custodian_id) if custodian_id and custodian_id.strip().isdigit() else None
+    
     status_enum = AssetStatus(status_filter) if status_filter and status_filter in [e.value for e in AssetStatus] else None
     cat_enum = AssetCategory(category_filter) if category_filter and category_filter in [e.value for e in AssetCategory] else None
 
     assets, total = AssetService.get_all(
         db, search=search, status=status_enum, category=cat_enum,
-        location_id=location_id, custodian_id=custodian_id, limit=200
+        location_id=loc_id, custodian_id=cust_id, limit=200
     )
     locations = LocationService.get_all(db)
     custodians = CustodianService.get_all(db, active_only=True)
@@ -312,7 +316,7 @@ def list_assets(
             "search": search or "",
             "selected_status": status_filter or "",
             "selected_category": category_filter or "",
-            "selected_location": location_id or "",
+            "selected_location": loc_id or "",
             "selected_custodian": custodian_id or "",
             "locations": locations,
             "custodians": custodians,
