@@ -581,6 +581,18 @@ border-info { border-color: var(--color-info) !important; }
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
+/* Filtros de "Equipamentos & Bens": impede que os campos de data sejam esmagados
+   pelas colunas estreitas (col-lg-1, ~8% da linha) em telas grandes. O min-width
+   precisa estar no flex item (a coluna), não no input — largura percentual da
+   coluna não cresce por causa do conteúdo. A linha .row do Bootstrap então quebra
+   para a próxima linha antes de comprimir o campo. Escopado ao mesmo breakpoint
+   (lg, ≥992px) em que a col-lg-1 do Bootstrap é aplicada. */
+@media (min-width: 992px) {
+  .assets-filters .col-lg-1 {
+    min-width: 155px;  /* largura natural medida do input date (dd/mm/aaaa + ícone) */
+  }
+}
+
 /* Addon de input-group: garante fundo/borda consistentes com o campo em ambos os temas */
 .input-group-text {
   font-size: .85rem;
