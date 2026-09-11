@@ -2,6 +2,21 @@
 
 {% block title %}{{ asset.tag }} - {{ asset.name }} | SisPatrimônio Pro{% endblock %}
 
+{% block flash_messages %}
+    {% if request.query_params.get('created') == 'true' %}
+    <div class="alert alert-success d-flex align-items-center gap-2 py-2 small mb-3" role="alert">
+        <i class="bi bi-check-circle-fill text-success"></i>
+        <span>Equipamento cadastrado com sucesso!</span>
+    </div>
+    {% endif %}
+    {% if request.query_params.get('moved') == 'true' %}
+    <div class="alert alert-success d-flex align-items-center gap-2 py-2 small mb-3" role="alert">
+        <i class="bi bi-check-circle-fill text-success"></i>
+        <span>Movimentação realizada com sucesso!</span>
+    </div>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
 <!-- Hero Header -->
 <div class="detail-hero mb-4">

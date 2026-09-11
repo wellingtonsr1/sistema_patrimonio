@@ -2,6 +2,15 @@
 
 {% block title %}Editar {{ user.username }} | SisPatrimônio Pro{% endblock %}
 
+{% block flash_messages %}
+    {% if request.query_params.get('created') == 'true' %}
+    <div class="alert alert-success d-flex align-items-center gap-2 py-2 small mb-3" role="alert">
+        <i class="bi bi-check-circle-fill text-success"></i>
+        <span>Operação realizada com sucesso!</span>
+    </div>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
     <div>

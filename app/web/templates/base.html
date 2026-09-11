@@ -284,6 +284,7 @@
 
     <!-- Main Container -->
     <main class="container-fluid py-4 px-lg-5 mx-auto" style="max-width:90%;">
+        {% block flash_messages %}{% endblock %}
         {% block content %}{% endblock %}
     </main>
 
