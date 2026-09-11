@@ -1,8 +1,10 @@
+import logging
+from pathlib import Path
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-from contextlib import asynccontextmanager
 
 from app.config import APP_NAME, APP_DESCRIPTION, APP_VERSION
 from app.database import init_db, SessionLocal
@@ -13,6 +15,8 @@ from app.services.permission_service import ensure_default_roles
 from app.web.routes import web_router, templates
 from app.web.admin_routes import admin_router
 from app.web.help_routes import help_router
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -89,4 +93,71 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.get("/health", tags=["Sistema"])
 def health_check():
-    return {"status": "healthy", "app": APP_NAME, "version": APP_VERSION}
+    """Health check aprimorado: verifica aplicação, banco de dados e AD (se habilitado)."""
+    from sqlalchemy import text
+    from app.services.ad_service import ad_enabled, get_ad_settings
+    from app.services.ad_ldap import test_connection, ADError
+    from app.config import AD_SERVER
+    
+    # Verificação da aplicação (se chegou aqui, está saudável)
+    app_status = "ok"
+    
+    # Verificação do banco de dados
+    db_status = "ok"
+    db_exception = None
+    try:
+        db = SessionLocal()
+        try:
+            db.execute(text("SELECT 1"))
+        finally:
+            db.close()
+    except Exception as e:
+        db_status = "warning"
+        db_exception = str(e)
+        logger.warning("Health check - banco de dados indisponível: %s", e)
+    
+    # Verificação do AD (somente se habilitado)
+    ad_status = "not_applicable"
+    ad_message = None
+    
+    if AD_SERVER and AD_SERVER.strip():
+        # AD configurado via variável de ambiente
+        try:
+            ad_settings = get_ad_settings(SessionLocal())
+            SessionLocal().close()
+            if ad_enabled(SessionLocal()):
+                # AD habilitado - testar conectividade
+                try:
+                    conn_result = test_connection(ad_settings)
+                    if conn_result.get("ok"):
+                        ad_status = "ok"
+                    else:
+                        ad_status = "warning"
+                        ad_message = conn_result.get("message", "Falha na conexão com AD")
+                except Exception as e:
+                    ad_status = "warning"
+                    ad_message = "Falha ao verificar AD"
+                    logger.warning("Health check - falha na verificação AD: %s", e)
+            else:
+                ad_status = "not_applicable"
+                ad_message = "AD configurado mas não habilitado"
+        except Exception as e:
+            ad_status = "not_applicable"
+            ad_message = "Não foi possível carregar configuração do AD"
+            logger.warning("Health check - erro ao carregar configuração AD: %s", e)
+    else:
+        ad_status = "not_applicable"
+        ad_message = "Integração AD não configurada"
+    
+    # Determinar status global
+    if db_status == "warning" or ad_status == "warning":
+        global_status = "degraded"
+    else:
+        global_status = "healthy"
+    
+    return {
+        "status": global_status,
+        "application": app_status,
+        "database": db_status,
+        "ad": ad_status,
+    }

@@ -4,12 +4,18 @@ Executa o servidor FastAPI com Uvicorn.
 """
 
 import uvicorn
+import logging
+
 from app.config import APP_HOST, APP_PORT, APP_NAME
 from app.database import init_db
 
 if __name__ == "__main__":
     print(f"-> Inicializando banco de dados do {APP_NAME}...")
     init_db()
+    
+    # Configura logs técnicos centralizados com rotação
+    from app.logging_config import configure_logging
+    configure_logging()
     
     print("=" * 60)
     print(f"[OK] {APP_NAME} iniciado com sucesso!")
