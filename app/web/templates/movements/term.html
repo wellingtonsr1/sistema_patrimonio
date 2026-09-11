@@ -78,7 +78,7 @@
                     <td class="bg-light fw-semibold" style="width: 25%;">Número de Tombamento:</td>
                     <td class="font-monospace fw-bold" style="width: 45%;">{{ term.asset.tag }}</td>
                     <td class="bg-light fw-semibold" style="width: 15%;">Categoria:</td>
-                    <td>{{ term.asset.category }}</td>
+                    <td>{{ term.asset.category.label }}</td>
                 </tr>
                 <tr>
                     <td class="bg-light fw-semibold">Descrição do Bem:</td>
@@ -92,7 +92,7 @@
                 </tr>
                 <tr>
                     <td class="bg-light fw-semibold">Estado de Conservação:</td>
-                    <td>{{ term.asset.condition }}</td>
+                    <td>{{ term.asset.condition.label }}</td>
                     <td class="bg-light fw-semibold">Local Alocado:</td>
                     <td>{{ term.location.name }}</td>
                 </tr>

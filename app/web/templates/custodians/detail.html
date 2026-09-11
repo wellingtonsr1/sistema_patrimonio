@@ -66,9 +66,9 @@
                         <div class="text-muted" style="font-size:.74rem;">S/N: {{ a.serial_number }}</div>
                         {% endif %}
                     </td>
-                    <td><span class="badge badge-soft-gray">{{ a.category.value }}</span></td>
-                    <td><span class="status-pill status-pill-{{ a.status.value }}">{{ a.status.value }}</span></td>
-                    <td class="small">{{ a.condition.value }}</td>
+                    <td><span class="badge badge-soft-gray">{{ a.category.label }}</span></td>
+                    <td><span class="status-pill status-pill-{{ a.status.value }}">{{ a.status.label }}</span></td>
+                    <td class="small">{{ a.condition.label }}</td>
                     <td class="small fw-semibold text-nowrap">
                         R$ {{ "{:,.2f}".format(a.purchase_value).replace(",", "v").replace(".", ",").replace("v", ".") }}
                     </td>

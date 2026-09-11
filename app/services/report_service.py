@@ -337,11 +337,11 @@ class ReportService:
             row = [
                 Paragraph(asset.tag or "", cell_style),
                 Paragraph(asset.name or "", cell_style),
-                Paragraph(asset.category.value if asset.category else "", cell_style),
+                Paragraph(asset.category.label if asset.category else "", cell_style),
                 Paragraph(asset.brand or "", cell_style),
                 Paragraph(asset.model or "", cell_style),
                 Paragraph(asset.serial_number or "", cell_style),
-                Paragraph(asset.status.value if asset.status else "", cell_style),
+                Paragraph(asset.status.label if asset.status else "", cell_style),
                 Paragraph(loc_name, cell_style),
                 Paragraph(cust_name, cell_style),
                 Paragraph(dt_purchase, cell_style),

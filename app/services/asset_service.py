@@ -236,7 +236,7 @@ class AssetService:
                 new_condition=data.condition,
                 reason="Vistoria técnica / Atualização de estado de conservação",
                 operator_name="Sistema",
-                notes=f"Estado de conservação alterado de {old_condition.value} para {data.condition.value}."
+                notes=f"Estado de conservação alterado de {old_condition.label} para {data.condition.label}."
             )
             db.add(movement)
 

@@ -25,7 +25,7 @@
             <select name="status_filter" class="form-select">
                 <option value="">Status: Todos</option>
                 {% for s in statuses %}
-                <option value="{{ s.value }}" {% if selected_status == s.value %}selected{% endif %}>{{ s.value }}</option>
+                <option value="{{ s.value }}" {% if selected_status == s.value %}selected{% endif %}>{{ s.label }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -33,7 +33,7 @@
             <select name="category_filter" class="form-select">
                 <option value="">Categoria: Todas</option>
                 {% for c in categories %}
-                <option value="{{ c.value }}" {% if selected_category == c.value %}selected{% endif %}>{{ c.value }}</option>
+                <option value="{{ c.value }}" {% if selected_category == c.value %}selected{% endif %}>{{ c.label }}</option>
                 {% endfor %}
             </select>
         </div>

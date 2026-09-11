@@ -29,7 +29,7 @@
                     <option value="">-- Selecione o Equipamento --</option>
                     {% for a in assets %}
                     <option value="{{ a.id }}" {% if selected_asset and selected_asset.id == a.id %}selected{% endif %}>
-                        [{{ a.tag }}] {{ a.name }} ({{ a.status.value }})
+                        [{{ a.tag }}] {{ a.name }} ({{ a.status.label }})
                     </option>
                     {% endfor %}
                 </select>
@@ -40,7 +40,7 @@
                     <label class="form-label fw-semibold">Tipo de Manutenção <span class="text-danger">*</span></label>
                     <select name="maintenance_type" class="form-select" required>
                         {% for mt in maintenance_types %}
-                        <option value="{{ mt.value }}">{{ mt.value }}</option>
+                        <option value="{{ mt.value }}">{{ mt.label }}</option>
                         {% endfor %}
                     </select>
                 </div>

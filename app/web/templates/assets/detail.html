@@ -26,9 +26,9 @@
             <div>
                 <h4 class="fw-bold mb-1" style="letter-spacing:-.02em;">{{ asset.name }}</h4>
                 <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
-                    <span class="status-pill status-pill-{{ asset.status.value }}">{{ asset.status.value }}</span>
-                    <span class="badge badge-soft-gray small">{{ asset.category.value }}</span>
-                    <span class="badge badge-soft-gray small">Condição: {{ asset.condition.value }}</span>
+                    <span class="status-pill status-pill-{{ asset.status.value }}">{{ asset.status.label }}</span>
+                    <span class="badge badge-soft-gray small">{{ asset.category.label }}</span>
+                    <span class="badge badge-soft-gray small">Condição: {{ asset.condition.label }}</span>
                 </div>
             </div>
         </div>
@@ -211,7 +211,7 @@
                         <!-- Movimentação -->
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <span class="badge badge-soft-primary font-monospace" style="font-size:.7rem;">{{ item.data.movement_type.value }}</span>
+                                <span class="badge badge-soft-primary" style="font-size:.7rem;">{{ item.data.movement_type.label }}</span>
                                 {% if item.data.term_code %}
                                 <span class="tag-badge" style="font-size:.68rem;">{{ item.data.term_code }}</span>
                                 {% endif %}

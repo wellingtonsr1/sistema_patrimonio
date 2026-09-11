@@ -797,7 +797,7 @@ def create_movement_form(
             "motivo": movement.reason,
             "termo": movement.term_code,
         },
-        description=f"Movimentação {movement.movement_type.value} do bem {asset_tag or movement.asset_id}",
+        description=f"Movimentação {movement.movement_type.label} do bem {asset_tag or movement.asset_id}",
     )
 
     # Se for alocação ou devolução, redireciona para o termo gerado
@@ -1391,7 +1391,7 @@ def create_maintenance_form(
             "descricao": maint.description,
             "custo": maint.cost,
         },
-        description=f"Abertura de ordem de serviço {maint.maintenance_type.value} para o bem {asset_tag or asset_id}",
+        description=f"Abertura de ordem de serviço {maint.maintenance_type.label} para o bem {asset_tag or asset_id}",
     )
     return RedirectResponse(url=f"/assets/{asset_id}?maintenance_started=true", status_code=status.HTTP_303_SEE_OTHER)
 

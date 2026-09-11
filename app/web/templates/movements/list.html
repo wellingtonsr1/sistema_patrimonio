@@ -30,7 +30,7 @@
             <select name="movement_type" class="form-select">
                 <option value="">Todos os Tipos</option>
                 {% for mt in movement_types %}
-                <option value="{{ mt.value }}" {% if selected_type == mt.value %}selected{% endif %}>{{ mt.value }}</option>
+                <option value="{{ mt.value }}" {% if selected_type == mt.value %}selected{% endif %}>{{ mt.label }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -76,7 +76,7 @@
                         </a>
                     </td>
                     <td>
-                        <span class="badge badge-soft-primary font-monospace" style="font-size:.68rem;">{{ m.movement_type.value }}</span>
+                        <span class="badge badge-soft-primary" style="font-size:.68rem;">{{ m.movement_type.label }}</span>
                     </td>
                     <td class="small">
                         <div><i class="bi bi-geo-alt text-muted me-1"></i>{{ m.origin_location_name or '-' }}</div>

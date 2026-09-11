@@ -91,6 +91,6 @@ def record_movement(data: MovementCreate, request: Request, db: Session = Depend
             "motivo": movement.reason,
             "termo": movement.term_code,
         },
-        description=f"Movimentação {movement.movement_type.value} do bem {asset.tag if asset else movement.asset_id}",
+        description=f"Movimentação {movement.movement_type.label} do bem {asset.tag if asset else movement.asset_id}",
     )
     return movement

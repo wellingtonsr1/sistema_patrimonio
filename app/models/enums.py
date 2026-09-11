@@ -1,7 +1,69 @@
 import enum
+from typing import Dict
 
 
-class AssetStatus(str, enum.Enum):
+# Rótulos em linguagem natural exibidos na interface.
+# O `value` do enum continua sendo o identificador técnico (banco, APIs, filtros).
+_LABELS: Dict[str, str] = {
+    # AssetStatus
+    "DISPONIVEL": "Disponível",
+    "EM_USO": "Em Uso",
+    "EM_MANUTENCAO": "Em Manutenção",
+    "EM_TRANSITO": "Em Trânsito",
+    "BAIXADO": "Baixado",
+    # AssetCondition
+    "NOVO": "Novo",
+    "EXCELENTE": "Excelente",
+    "BOM": "Bom",
+    "REGULAR": "Regular",
+    "RUIM": "Ruim",
+    "INSERVIVEL": "Inservível",
+    # AssetCategory
+    "NOTEBOOK": "Notebook",
+    "DESKTOP": "Desktop",
+    "MONITOR": "Monitor",
+    "SERVIDOR": "Servidor",
+    "REDE_E_CONECTIVIDADE": "Rede e Conectividade",
+    "IMPRESSORA": "Impressora",
+    "SMARTPHONE_TABLET": "Smartphone / Tablet",
+    "MOBILIARIO": "Mobiliário",
+    "VEICULO": "Veículo",
+    "EQUIPAMENTO_GERAL": "Equipamento Geral",
+    "OUTROS": "Outros",
+    # MovementType
+    "ENTRADA_AQUISICAO": "Entrada por Aquisição",
+    "ALOCACAO_CAUTELA": "Alocação / Cautela",
+    "TRANSFERENCIA_LOCAL": "Transferência de Local",
+    "ENVIO_MANUTENCAO": "Envio para Manutenção",
+    "RETORNO_MANUTENCAO": "Retorno de Manutenção",
+    "DEVOLUCAO_ESTOQUE": "Devolução ao Estoque",
+    "BAIXA_DESCARTE": "Baixa / Descarte",
+    "ATUALIZACAO_ESTADO": "Atualização de Estado",
+    # MaintenanceType
+    "PREVENTIVA": "Preventiva",
+    "CORRETIVA": "Corretiva",
+    "UPGRADE": "Upgrade",
+    # MaintenanceStatus
+    "AGENDADA": "Agendada",
+    "EM_ANDAMENTO": "Em Andamento",
+    "CONCLUIDA": "Concluída",
+    "CANCELADA": "Cancelada",
+}
+
+
+class _LabeledEnum(str, enum.Enum):
+    """Enum com rótulo pronto para exibição ao usuário final.
+
+    Em templates use `label`; `value` permanece como identificador técnico
+    (persistência, queries, filtros e CSS, ex.: `status-pill-{{ status.value }}`).
+    """
+
+    @property
+    def label(self) -> str:
+        return _LABELS.get(self.value, self.value)
+
+
+class AssetStatus(_LabeledEnum):
     AVAILABLE = "DISPONIVEL"            # Disponível no estoque
     IN_USE = "EM_USO"                   # Alocado / Em uso por colaborador ou setor
     IN_MAINTENANCE = "EM_MANUTENCAO"    # Em manutenção técnica
@@ -9,7 +71,7 @@ class AssetStatus(str, enum.Enum):
     WRITTEN_OFF = "BAIXADO"             # Descartado / Baixado / Leiloado / Perdido
 
 
-class AssetCondition(str, enum.Enum):
+class AssetCondition(_LabeledEnum):
     NEW = "NOVO"                        # Novo / Na caixa
     EXCELLENT = "EXCELENTE"             # Excelente estado
     GOOD = "BOM"                        # Bom estado de funcionamento
@@ -18,7 +80,7 @@ class AssetCondition(str, enum.Enum):
     UNSERVICEABLE = "INSERVIVEL"        # Sem condições de uso / Sucata
 
 
-class AssetCategory(str, enum.Enum):
+class AssetCategory(_LabeledEnum):
     NOTEBOOK = "NOTEBOOK"
     DESKTOP = "DESKTOP"
     MONITOR = "MONITOR"
@@ -32,7 +94,7 @@ class AssetCategory(str, enum.Enum):
     OTHER = "OUTROS"
 
 
-class MovementType(str, enum.Enum):
+class MovementType(_LabeledEnum):
     ACQUISITION = "ENTRADA_AQUISICAO"         # Cadastro inicial e entrada no acervo
     ALLOCATION = "ALOCACAO_CAUTELA"           # Entrega / Cautela para colaborador
     TRANSFER = "TRANSFERENCIA_LOCAL"          # Mudança de filial / prédio / sala
@@ -43,13 +105,13 @@ class MovementType(str, enum.Enum):
     STATUS_UPDATE = "ATUALIZACAO_ESTADO"      # Vistoria / Mudança de estado de conservação
 
 
-class MaintenanceType(str, enum.Enum):
+class MaintenanceType(_LabeledEnum):
     PREVENTIVE = "PREVENTIVA"
     CORRECTIVE = "CORRETIVA"
     UPGRADE = "UPGRADE"
 
 
-class MaintenanceStatus(str, enum.Enum):
+class MaintenanceStatus(_LabeledEnum):
     SCHEDULED = "AGENDADA"
     IN_PROGRESS = "EM_ANDAMENTO"
     COMPLETED = "CONCLUIDA"

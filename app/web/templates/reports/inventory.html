@@ -50,8 +50,8 @@
                         <strong>{{ a.name }}</strong>
                         {% if a.serial_number %}<div class="text-muted" style="font-size:.72rem;">S/N: {{ a.serial_number }}</div>{% endif %}
                     </td>
-                    <td><span class="badge badge-soft-gray" style="font-size:.68rem;">{{ a.category.value }}</span></td>
-                    <td><span class="status-pill status-pill-{{ a.status.value }}">{{ a.status.value }}</span></td>
+                    <td><span class="badge badge-soft-gray" style="font-size:.68rem;">{{ a.category.label }}</span></td>
+                    <td><span class="status-pill status-pill-{{ a.status.value }}">{{ a.status.label }}</span></td>
                     <td class="small">{{ a.location.name if a.location else 'Estoque Geral' }}</td>
                     <td class="small">{{ a.custodian.name if a.custodian else 'Livre' }}</td>
                     <td class="small">{{ a.purchase_date.strftime('%d/%m/%Y') if a.purchase_date else '-' }}</td>

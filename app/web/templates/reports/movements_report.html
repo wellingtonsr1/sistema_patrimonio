@@ -48,7 +48,7 @@
                     <td class="text-nowrap">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
                     <td class="font-monospace fw-bold">{{ m.asset.tag }}</td>
                     <td>{{ m.asset.name }}</td>
-                    <td><span class="badge badge-soft-primary font-monospace" style="font-size:.68rem;">{{ m.movement_type.value }}</span></td>
+                    <td><span class="badge badge-soft-primary" style="font-size:.68rem;">{{ m.movement_type.label }}</span></td>
                     <td class="small">
                         {{ m.origin_location_name or '-' }}
                         {% if m.origin_custodian_name %}<br><span class="text-muted">({{ m.origin_custodian_name }})</span>{% endif %}
@@ -57,7 +57,7 @@
                         <strong style="color:var(--c-primary-text);">{{ m.destination_location_name or '-' }}</strong>
                         {% if m.destination_custodian_name %}<br><span style="color:var(--c-primary-text);">({{ m.destination_custodian_name }})</span>{% endif %}
                     </td>
-                    <td><span class="status-pill status-pill-{{ m.new_status.value }}">{{ m.new_status.value }}</span></td>
+                    <td><span class="status-pill status-pill-{{ m.new_status.value }}">{{ m.new_status.label }}</span></td>
                     <td class="truncate-2" style="max-width:200px;">{{ m.reason }}</td>
                     <td class="small text-muted">{{ m.operator_name }}</td>
                     <td class="font-monospace text-center small">

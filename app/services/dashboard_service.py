@@ -63,7 +63,7 @@ class DashboardService:
                 "written_off": status_counts.get(AssetStatus.WRITTEN_OFF, 0),
             },
             "category_distribution": [
-                {"category": cat.value if hasattr(cat, 'value') else str(cat), "count": count}
+                {"category": cat.label if hasattr(cat, 'label') else str(cat), "count": count}
                 for cat, count in category_counts.items()
             ],
             "location_distribution": location_dist_data,

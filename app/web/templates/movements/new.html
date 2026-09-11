@@ -32,7 +32,7 @@
                     <option value="">-- Selecione o Bem Patrimonial --</option>
                     {% for a in assets %}
                     <option value="{{ a.id }}" {% if selected_asset and selected_asset.id == a.id %}selected{% endif %}>
-                        [{{ a.tag }}] {{ a.name }} — {{ a.status.value }} ({{ a.custodian.name if a.custodian else 'Estoque' }})
+                        [{{ a.tag }}] {{ a.name }} — {{ a.status.label }} ({{ a.custodian.name if a.custodian else 'Estoque' }})
                     </option>
                     {% endfor %}
                 </select>
@@ -105,7 +105,7 @@
                     <select name="new_condition" class="form-select">
                         <option value="">-- Manter Estado Atual --</option>
                         {% for cond in conditions %}
-                        <option value="{{ cond.value }}">{{ cond.value }}</option>
+                        <option value="{{ cond.value }}">{{ cond.label }}</option>
                         {% endfor %}
                     </select>
                 </div>

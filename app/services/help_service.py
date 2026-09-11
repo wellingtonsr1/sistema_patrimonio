@@ -223,11 +223,11 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Significado dos status",
                 "steps": [
-                    "DISPONIVEL — o bem está no estoque/almoxarifado, sem responsável.",
-                    "EM_USO — o bem está alocado a um colaborador ou setor.",
-                    "EM_MANUTENCAO — o bem está em reparo técnico.",
-                    "EM_TRANSITO — o bem está em transporte/transferência.",
-                    "BAIXADO — o bem foi descartado, leiloado ou perdido (baixa definitiva).",
+                    "Disponível — o bem está no estoque/almoxarifado, sem responsável.",
+                    "Em Uso — o bem está alocado a um colaborador ou setor.",
+                    "Em Manutenção — o bem está em reparo técnico.",
+                    "Em Trânsito — o bem está em transporte/transferência.",
+                    "Baixado — o bem foi descartado, leiloado ou perdido (baixa definitiva).",
                 ],
             },
         ],
@@ -523,7 +523,7 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "O que acontece",
                 "body": (
-                    "A OS é marcada como concluída, o status do equipamento retorna para DISPONIVEL e o "
+                    "A OS é marcada como concluída, o status do equipamento retorna para Disponível e o "
                     "retorno da manutenção é registrado no histórico do bem."
                 ),
             },
@@ -875,7 +875,7 @@ FAQ: List[Dict] = [
         "question": "Como devolver um equipamento ao estoque?",
         "answer": (
             "Abra o bem e clique em Movimentar, escolha Devolução ao Estoque e informe o motivo. O "
-            "status volta para DISPONIVEL e o termo de devolução é gerado."
+            "status volta para Disponível e o termo de devolução é gerado."
         ),
     },
 ]

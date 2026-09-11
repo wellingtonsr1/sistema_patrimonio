@@ -45,7 +45,7 @@
                     <label class="form-label">Categoria <span class="text-danger">*</span></label>
                     <select name="category" class="form-select" required>
                         {% for cat in categories %}
-                        <option value="{{ cat.value }}">{{ cat.value }}</option>
+                        <option value="{{ cat.value }}">{{ cat.label }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -95,7 +95,7 @@
                     <label class="form-label">Estado de Conservação Inicial</label>
                     <select name="condition" class="form-select">
                         {% for cond in conditions %}
-                        <option value="{{ cond.value }}" {% if cond.value == 'NOVO' %}selected{% endif %}>{{ cond.value }}</option>
+                        <option value="{{ cond.value }}" {% if cond.value == 'NOVO' %}selected{% endif %}>{{ cond.label }}</option>
                         {% endfor %}
                     </select>
                 </div>
