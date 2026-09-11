@@ -6,7 +6,10 @@ from app.models.asset import Asset
 from app.models.movement import Movement
 from app.models.location import Location
 from app.models.custodian import Custodian
+from app.models.audit_log import AuditLog
 from app.models.enums import MovementType, AssetStatus, AssetCondition
+from app.services.audit_service import ACTION_CREATE, ACTION_UPDATE, RESULT_SUCCESS
+import json as json_lib
 from app.schemas.movement import MovementCreate, MovementFilter
 from app.config import COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS
 
@@ -170,17 +173,69 @@ class MovementService:
         ).filter(Movement.movement_uuid == movement_uuid).first()
 
     @staticmethod
-    def get_timeline_for_asset(db: Session, asset_id: int) -> List[Movement]:
+    def get_timeline_for_asset(db: Session, asset_id: int) -> List[Dict[str, Any]]:
         """
-        Retorna toda a linha do tempo / histórico de movimentação do equipamento,
-        ordenada cronologicamente (da mais recente para a mais antiga).
+        Retorna toda a linha do tempo / histórico do equipamento,
+        combinando movimentações E eventos de auditoria relacionados.
+        Ordenada cronologicamente (da mais recente para a mais antiga).
         """
-        return db.query(Movement).options(
+        # Movimentações do asset
+        movements = db.query(Movement).options(
             joinedload(Movement.origin_location),
             joinedload(Movement.destination_location),
             joinedload(Movement.origin_custodian),
             joinedload(Movement.destination_custodian)
-        ).filter(Movement.asset_id == asset_id).order_by(desc(Movement.timestamp)).all()
+        ).filter(Movement.asset_id == asset_id).all()
+        
+        # Eventos de auditoria relacionados ao asset (resource = 'Asset' e resource_id = asset_id)
+        audit_events = db.query(AuditLog).filter(
+            AuditLog.resource == 'Asset',
+            AuditLog.resource_id == asset_id
+        ).order_by(AuditLog.timestamp.desc()).limit(50).all()
+        
+        # Combina ambos em uma lista unificada
+        timeline = []
+        
+        # Adiciona movimentações
+        for m in movements:
+            timeline.append({
+                'type': 'movement',
+                'timestamp': m.timestamp,
+                'data': m
+            })
+        
+        # Adiciona eventos de auditoria relevantes
+        for a in audit_events:
+            # Evita duplicar eventos que já estão como movimentações
+            if a.action in [ACTION_MOVEMENT, ACTION_MAINTENANCE]:
+                continue
+            
+            # Desserializa os dados anteriores/posteriores se existirem
+            prev_data = None
+            new_data = None
+            if a.previous_data:
+                try:
+                    prev_data = json_lib.loads(a.previous_data)
+                except (json_lib.JSONDecodeError, TypeError):
+                    prev_data = None
+            if a.new_data:
+                try:
+                    new_data = json_lib.loads(a.new_data)
+                except (json_lib.JSONDecodeError, TypeError):
+                    new_data = None
+            
+            timeline.append({
+                'type': 'audit',
+                'timestamp': a.timestamp,
+                'data': a,
+                'prev_data': prev_data,
+                'new_data': new_data
+            })
+        
+        # Ordena por timestamp (mais recente primeiro)
+        timeline.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        return timeline
 
     @staticmethod
     def get_all_movements(
