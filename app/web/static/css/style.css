@@ -1504,6 +1504,15 @@ main { animation: fadeInUp .3s var(--ease); }
 .label-k { font-weight: 700; color: var(--c-text); }
 .label-empty { color: var(--c-text-muted); }
 
+/* Contraste dos checkboxes da página de Etiquetas no tema claro:
+   a borda padrão Bootstrap (#dee2e6) fica invisível sobre o cartão branco.
+   Aplica apenas no tema claro e apenas no estado desmarcado — :checked,
+   :disabled e o tema escuro seguem com o padrão Bootstrap atual. */
+html[data-theme="light"] .asset-check:not(:checked),
+html[data-theme="light"] #select-all-page:not(:checked) {
+  border-color: var(--color-text-muted);
+}
+
 /* Impressão: apenas a área de etiquetas é impressa */
 @media print {
   body > *:not(main),
