@@ -55,11 +55,64 @@ ACTION_AD_UNAVAILABLE = "FALHA_COMUNICACAO_AD"
 ACTION_AD_SETTINGS_UPDATED = "ALTERACAO_CONFIG_AD"
 ACTION_AD_CONNECTION_TESTED = "TESTE_CONEXAO_AD"
 
+# Rótulos em linguagem natural exibidos na interface.
+# A ação gravada na trilha continua sendo o identificador (ex.: "RESET_SENHA").
+ACTION_LABELS: Dict[str, str] = {
+    # Ações gerais
+    ACTION_LOGIN: "Login",
+    ACTION_LOGIN_FAILED: "Falha de Login",
+    ACTION_LOGIN_LOCKED: "Login Bloqueado",
+    ACTION_LOGOUT: "Logout",
+    ACTION_CREATE: "Criação",
+    ACTION_UPDATE: "Alteração",
+    ACTION_DELETE: "Exclusão",
+    ACTION_BLOCK: "Bloqueio",
+    ACTION_UNBLOCK: "Desbloqueio",
+    ACTION_PASSWORD_RESET: "Redefinição de Senha",
+    ACTION_PASSWORD_CHANGE: "Troca de Senha",
+    ACTION_PROFILE_CHANGE: "Alteração de Perfil",
+    ACTION_ROLE_CREATE: "Criação de Perfil",
+    ACTION_ROLE_UPDATE: "Alteração de Permissões do Perfil",
+    ACTION_ROLE_DELETE: "Exclusão de Perfil",
+    ACTION_MOVEMENT: "Movimentação",
+    ACTION_MAINTENANCE: "Manutenção",
+    ACTION_IMPORT: "Importação",
+    ACTION_ACCESS_DENIED: "Acesso Negado",
+    # Integração Active Directory
+    ACTION_AD_LOGIN: "Login (AD)",
+    ACTION_AD_LOGIN_AUTHORIZED: "Login AD Autorizado",
+    ACTION_AD_LOGIN_FAILED: "Falha de Login AD",
+    ACTION_AD_ACCOUNT_DISABLED: "Conta AD Desabilitada",
+    ACTION_AD_PROVISIONED: "Usuário AD Provisionado",
+    ACTION_AD_CUSTODIAN_LINKED: "Usuário AD Vinculado a Colaborador",
+    ACTION_AD_GROUP_SYNC: "Grupos AD Identificados",
+    ACTION_AD_NO_MAPPING: "Grupo AD sem Mapeamento",
+    ACTION_AD_ROLE_SYNCED: "Perfil Sincronizado pelo AD",
+    ACTION_AD_GROUP_CONFLICT: "Conflito de Grupos AD",
+    ACTION_AD_UNAVAILABLE: "Falha de Comunicação com o AD",
+    ACTION_AD_SETTINGS_UPDATED: "Alteração de Configuração do AD",
+    ACTION_AD_CONNECTION_TESTED: "Teste de Conexão com o AD",
+}
+
 # Resultados
 RESULT_SUCCESS = "SUCCESS"
 RESULT_FAILURE = "FAILURE"
 RESULT_DENIED = "DENIED"
 RESULT_LOCKED = "LOCKED"
+
+
+def action_label(action: Optional[str]) -> str:
+    """Converte a ação da trilha em rótulo de interface.
+
+    Ações desconhecidas (novas, gravadas por versões futuras) caem num
+    rótulo legível gerado a partir do próprio identificador, evitando que
+    um `SNAKE_CASE` chegue à tela.
+    """
+    if not action:
+        return ""
+    return ACTION_LABELS.get(action) or " ".join(
+        word.capitalize() for word in action.split("_") if word
+    )
 
 
 def _to_json(data: Any) -> Optional[str]:

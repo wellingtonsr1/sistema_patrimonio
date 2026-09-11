@@ -34,7 +34,7 @@
             <select name="action" class="form-select">
                 <option value="">Todas</option>
                 {% for a in actions %}
-                <option value="{{ a }}" {% if selected_action == a %}selected{% endif %}>{{ a }}</option>
+                <option value="{{ a }}" {% if selected_action == a %}selected{% endif %}>{{ action_label(a) }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -84,7 +84,7 @@
                     <td class="text-muted small">{{ log.id }}</td>
                     <td class="small text-muted text-nowrap">{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</td>
                     <td class="small">{{ log.username or '-' }}</td>
-                    <td><span class="badge badge-soft-primary font-monospace" style="font-size:.64rem;">{{ log.action }}</span></td>
+                    <td><span class="badge badge-soft-primary" style="font-size:.64rem;">{{ action_label(log.action) }}</span></td>
                     <td class="small">{{ log.module or '-' }}</td>
                     <td class="small">
                         {{ log.resource or '-' }}
@@ -100,8 +100,10 @@
                         <span class="badge badge-soft-red">NEGADO</span>
                         {% elif log.result == 'FAILURE' %}
                         <span class="badge badge-soft-red">FALHA</span>
+                        {% elif log.result == 'LOCKED' %}
+                        <span class="badge badge-soft-gray">BLOQUEADO</span>
                         {% else %}
-                        <span class="badge badge-soft-red">{{ log.result }}</span>
+                        <span class="badge badge-soft-red">{{ log.result | replace('_', ' ') }}</span>
                         {% endif %}
                     </td>
                     <td style="max-width:320px;">

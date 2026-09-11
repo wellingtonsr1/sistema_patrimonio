@@ -58,6 +58,7 @@ from app.services.audit_service import (
     RESULT_SUCCESS,
     RESULT_FAILURE,
     RESULT_LOCKED,
+    action_label,
     write_audit,
     write_change_audit,
 )
@@ -115,6 +116,7 @@ templates.env.globals["app_name"] = APP_NAME
 templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["company_name"] = COMPANY_NAME
 templates.env.globals["current_year"] = datetime.now().year
+templates.env.globals["action_label"] = action_label
 
 web_router = APIRouter(include_in_schema=False)
 
