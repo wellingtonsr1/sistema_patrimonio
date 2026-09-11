@@ -84,6 +84,17 @@ mapeado para perfil existente; sem mapeamento → nada é criado no banco, apena
 `app/models/` — um arquivo por entidade; todos registrados em `app/models/__init__.py`
 (necessário para `Base.metadata.create_all`). Enums em `app/models/enums.py`.
 
+## Onde estão os logs técnicos? (diferente da auditoria)
+
+- **Auditoria de negócio** → tabela `audit_logs` (consultada em `/admin/audit`) — ações dos usuários.
+- **Logs técnicos** → `app/logging_config.py::configure_logging` (chamado por `run.py`):
+  - `data/logs/app.log` — INFO e abaixo (funcionamento normal);
+  - `data/logs/app.error.log` — WARNING e acima (erros/exceções);
+  - rotação: 5 MB por arquivo, 5 backups; formato `data | nível | logger | mensagem`;
+  - `uvicorn.access` suprimido para WARNING (evita ruído).
+- Diagnóstico: erro 500 em uma página → ver primeiro `app.error.log`; a auditoria registra
+  ações autorizadas/negadas, não stack traces.
+
 ## Onde está o banco?
 
 - **Arquivo** → `data/patrimonio.db` (SQLite; ajustável via `DATABASE_URL` em `app/config.py`).
@@ -113,6 +124,7 @@ O SisPatrimônio Pro possui **três formas** de criar o primeiro administrador:
 - Se não houver usuários no banco e `AUTH_ADMIN_PASSWORD` não estiver definida, a tela de login exibe um link "Primeiro acesso"
 - Acesse `/setup` e preencha: nome, usuário, e-mail e senha (mínimo 8 caracteres)
 - O sistema cria o administrador e osperfis padrão automaticamente
+- `/setup` fica inacessível assim que existir qualquer usuário (redirect para `/login`)
 
 **2. Via variável de ambiente** (criação automática no start):
 ```bash
@@ -128,10 +140,16 @@ python -m app.cli create-user --username admin --password 'SenhaForte@123' --adm
 ## Como executar os testes
 
 ```bash
-pytest -v          # 110 testes; SQLite em memória; LDAP mockado
+pytest -v          # 156 testes (12 arquivos); SQLite em memória; LDAP mockado
 pytest tests/test_ad.py -v          # apenas AD
 pytest tests/test_rbac.py -v        # apenas RBAC
 ```
+
+> **Estado atual (registrado, não corrigido nesta documentação):** 3 testes falham com o
+> mesmo erro latente — `NameError: ACTION_MOVEMENT` em `movement_service.get_timeline_for_asset`
+> (a função também passou a retornar dicts, quebrando testes antigos que esperavam objetos ORM).
+> **Impacto real: as páginas de detalhes do bem (`/assets/{id}`) podem falhar com erro 500.**
+> Detalhes em `ARQUITETURA_E_MANUTENCAO.md` §18 item 11 e §19.
 
 ---
 
@@ -169,6 +187,33 @@ Constantes `COMPANY_NAME`, `COMPANY_CNPJ`, `COMPANY_ADDRESS` em `app/config.py`
 ### Ajustar o comportamento do tema claro/escuro
 `app/web/static/js/main.js` (`initDarkMode`, `toggleDarkMode`, `applyTheme`) e
 `app/web/static/css/style.css` (`[data-theme="dark"]`).
+
+### Ajustar a página de Etiquetas
+Handler `assets_labels` em `app/web/routes.py` (rota `/assets/labels`, permissão
+`patrimonio.visualizar`); template `app/web/templates/assets/labels.html` (seleção em lote
+via URL `?selected=`, folha renderizada client-side, QR gerado com a mesma chamada qrcodejs
+da ficha); layout/impressão no bloco "ETIQUETAS DE PATRIMÔNIO" de `style.css` (grade A4,
+`@media print`). Não altera dados — somente leitura. O link do menu fica em
+`base.html`, dentro do dropdown "Equipamentos" (desktop) e no drawer lateral (mobile).
+
+### Alterar conteúdo da Central de Ajuda
+Tudo em `app/services/help_service.py`: artigos em `ARTICLES`, perguntas em `FAQ`,
+cards em `CATEGORIES`. Nenhum código de rota precisa mudar para editar conteúdo.
+
+---
+
+## Problemas conhecidos (registrados — ver detalhes em ARQUITETURA §18)
+
+1. **`NameError` latente em `movement_service.get_timeline_for_asset`** (constantes
+   `ACTION_MOVEMENT`/`ACTION_MAINTENANCE` não importadas): detalhes do bem
+   (`/assets/{id}`), endpoint de timeline e CLI `show` podem falhar com 500.
+2. **Sem proteção CSRF** nos formulários web (mitigado parcialmente por `SameSite=Lax`).
+3. **`AUTH_PROVIDER` inerte** — o login real usa `resolve_authentication()`.
+4. **`seed_demo.py` apaga o banco** (`drop_all`) — nunca apontar para o banco real.
+5. **Permissões sem rota**: `patrimonio.excluir`, `movimentacao.editar`,
+   `movimentacao.cancelar`, `manutencao.editar` existem no catálogo, mas nenhuma rota as exige.
+6. **Datas mistas**: `datetime.now()` (hora local) em `asset_service`/`movement_service` vs.
+   `datetime.utcnow()` em auth/sessões/modelos.
 
 ---
 

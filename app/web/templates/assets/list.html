@@ -102,10 +102,16 @@
             </select>
         </div>
         <div class="col-6 col-md-3 col-lg-2">
-            <input type="date" name="purchase_date_from" class="form-control" value="{{ selected_date_from }}" placeholder="De">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted small">De:</span>
+                <input type="date" name="purchase_date_from" class="form-control" value="{{ selected_date_from }}" >
+            </div>
         </div>
         <div class="col-6 col-md-3 col-lg-2">
-            <input type="date" name="purchase_date_to" class="form-control" value="{{ selected_date_to }}" placeholder="Até">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted small">Até:</span>
+                <input type="date" name="purchase_date_to" class="form-control" value="{{ selected_date_to }}">
+            </div>
         </div>
         <div class="col-12 col-md-6 col-lg-4 d-flex gap-2 align-items-end">
             <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrar</button>

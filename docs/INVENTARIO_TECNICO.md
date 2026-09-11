@@ -13,6 +13,7 @@
 | `run.py` | Inicia Uvicorn com `app.main:app` (`APP_HOST`/`APP_PORT`); chama `init_db()` antes |
 | `requirements.txt` | Dependências (mínimos): fastapi, uvicorn[standard], sqlalchemy, pydantic, jinja2, python-multipart, pytest, requests, ldap3 |
 | `seed_demo.py` | Demo: `Base.metadata.drop_all` + `init_db` + carga de 4 locais, 4 colaboradores, 7 bens, movimentações e 1 manutenção |
+| `data/logs/` | Logs técnicos (`app.log`, `app.error.log`) criados por `app/logging_config.py` |
 | `README.md` | Documentação geral do projeto (execução, auth, AD, RBAC, CLI, testes) |
 | `data/patrimonio.db` | Banco SQLite da aplicação |
 
@@ -25,6 +26,7 @@
 | `app/main.py` | `app` (FastAPI), `lifespan` (`init_db`, `ensure_admin_user`, `ensure_default_roles`), montagem `/static`, inclusão dos roteadores, `http_exception_handler` (403/404 HTML), rota `/health` |
 | `app/config.py` | Constantes: `BASE_DIR`, `DATA_DIR`, `DATABASE_URL`, `APP_*`, `COMPANY_*`, `AUTH_*` (10 variáveis), `AD_*` (8 variáveis) |
 | `app/database.py` | `engine`, `SessionLocal`, `Base`, `get_db()`, `init_db()`, `_ensure_schema_migrations()` |
+| `app/logging_config.py` | `configure_logging()`: logs técnicos em `data/logs/app.log` (INFO) e `app.error.log` (WARNING+), rotação 5 MB × 5 backups; chamado por `run.py` |
 | `app/cli.py` | `main()` com subcomandos: `stats`, `list`, `show`, `move`, `create-user` (`--username --password --name --email --admin --role` repetível) |
 
 ---
@@ -87,10 +89,11 @@
 | Módulo | Funções-chave |
 |---|---|
 | `asset_service.py` | `AssetService.get_all/get_by_id/get_by_tag/create/update/calculate_depreciation` |
-| `movement_service.py` | `MovementService.create_movement` (motor do fluxo), `get_by_id`, `get_by_uuid`, `get_timeline_for_asset`, `get_all_movements`, `get_term_details` |
+| `movement_service.py` | `MovementService.create_movement` (motor do fluxo), `get_by_id`, `get_by_uuid`, `get_timeline_for_asset` (dicts: movimentações + auditoria — ⚠ ver ARQUITETURA §18.11), `get_all_movements`, `get_term_details` |
 | `maintenance_service.py` | `MaintenanceService.get_all/get_by_id/create/complete_maintenance` |
 | `custodian_service.py` | `CustodianService.get_all/get_by_id/get_by_registration_code/create/update/get_assigned_assets/count_assigned_assets` |
 | `location_service.py` | `LocationService.get_all/get_by_id/get_by_name/create/update/count_assets` |
+| `location_import_service.py` | `parse_locations_csv`, `preview_locations_import`, `execute_locations_import` (importação CSV de locais) |
 | `dashboard_service.py` | `DashboardService.get_stats` (KPIs + recent_movements/recent_assets) |
 | `report_service.py` | `ReportService.generate_inventory_csv`, `generate_custodians_csv`, `generate_movements_csv` |
 | `import_service.py` | `parse_csv`, `preview_import`, `execute_import`; `CATEGORY_MAP`, `CONDITION_MAP`, `COLUMN_ALIASES`, helpers de normalização |
@@ -100,7 +103,7 @@
 
 | Módulo | Conteúdo |
 |---|---|
-| `help_service.py` | `ARTICLES` (16 artigos), `FAQ` (12 perguntas), `CATEGORIES` (7), `get_articles`, `get_article`, `get_faq`, `get_categories`, `serialize_search_index` |
+| `help_service.py` | `ARTICLES` (21 artigos), `FAQ` (12 perguntas), `CATEGORIES` (7), `get_articles`, `get_article`, `get_faq`, `get_categories`, `serialize_search_index` |
 | `ad_ldap.py` | `ADUser` (dataclass), `ADError`, `authenticate_ad`, `test_connection`, `get_user_groups`, `_build_server`, `_connect`, `_search_service_account`, `_canonical_guid`, `_normalize_username`, `_extract_common_name`, `UAC_DISABLED_BIT` |
 | `ad_service.py` | `ADNotConfiguredError`, `ADAuthenticationError`, `ADUnavailableError`, `ADNoProfileError`; `get_ad_settings`, `_effective_settings`, `ad_enabled`, `get_group_mappings`, `upsert_group_mapping`, `delete_group_mapping`, `resolve_role_for_groups`, `_find_user_by_identity`, `find_linked_custodian`, `_assign_ad_role`, `_upsert_ad_user`, `_link_custodian`, `authenticate_and_sync`; constantes `PROVIDER_LOCAL/PROVIDER_AD` |
 
@@ -127,42 +130,47 @@ Inventário completo (método, permissão, handler) → ver `ARQUITETURA_E_MANUT
 
 | Arquivo | Rotas |
 |---|---|
-| `routes.py` | `/login` (GET/POST), `/logout`, `/`, `/assets*` (list, new, import+confirm, {id}), `/movements*` (list, new, {id}/term), `/custodians*` (list, new, import+confirm, {id}), `/locations*` (list, new), `/maintenances*` (list, new, {id}/complete), `/reports/{inventory,movements,custodians}`; configura `templates` com context processor `_inject_current_user` (fornece `can()`) |
+| `routes.py` | `/login` (GET/POST), `/logout`, `/`, `/setup` (GET/POST, primeiro acesso), `/assets*` (list, labels, new, import+confirm, {id}), `/movements*` (list, new, {id}/term), `/custodians*` (list, new, {id}/edit, import+confirm, {id}), `/locations*` (list, new, import+confirm), `/maintenances*` (list, new, {id}/complete), `/reports/{inventory,movements,custodians}`; configura `templates` com context processor `_inject_current_user` (fornece `can()`) |
 | `admin_routes.py` | `/admin`, `/admin/users*` (list/new/edit/toggle-active/reset-password), `/admin/roles*` (list/new/{id}/edit/delete), `/admin/audit`, `/profile/password` (GET/POST), `/admin/ad` (page/settings/test/mappings/mappings/{id}/delete); helpers `_user_has_admin_access`, `_count_active_admins`, `_guard_remove_admin_access`, `_ad_admin_guard` |
 | `help_routes.py` | GET `/ajuda`, GET `/ajuda/{article_id}` |
 
-### Templates (33) — `app/web/templates/`
+### Templates (37) — `app/web/templates/`
 
-`base.html`, `login.html`, `dashboard.html`, `403.html`, `404.html`,
-`assets/{list,form,detail,import}.html`, `movements/{list,new,term}.html`,
-`custodians/{list,form,detail,import}.html`, `locations/{list,form}.html`,
+`base.html`, `login.html`, `dashboard.html`, `setup.html`, `403.html`, `404.html`,
+`assets/{list,form,detail,import,labels}.html`, `movements/{list,new,term}.html`,
+`custodians/{list,form,detail,import}.html`, `locations/{list,form,import}.html`,
 `maintenances/{list,new}.html`, `reports/{inventory,movements_report,custodians_report}.html`,
 `admin/users/{list,new,edit}.html`, `admin/roles/{list,form}.html`, `admin/audit/list.html`,
 `admin/ad/settings.html`, `ajuda/{index,article}.html`, `profile/password.html`.
 
 ### Estáticos — `app/web/static/`
 
-`css/style.css` (tema + layout), `js/main.js` (dark mode, tooltips, alertas, contadores, sidebar).
+`css/style.css` (tema + layout; inclui o bloco de CSS de impressão das Etiquetas), `js/main.js`
+(dark mode, tooltips, alertas, contadores, sidebar).
 Bibliotecas externas via CDN em `base.html`: Bootstrap 5.3.3, Bootstrap Icons 1.11.3, Chart.js,
 QRCode.js, Google Fonts (Plus Jakarta Sans).
 
 ---
 
-## 8. Testes (`tests/`) — 9 arquivos, 110 testes
+## 8. Testes (`tests/`) — 12 arquivos, 156 testes (153 passam; 3 falhas conhecidas — ver ARQUITETURA §19)
 
 | Arquivo | Qtde | Escopo |
 |---|---|---|
 | `conftest.py` | — | SQLite em memória (StaticPool), fixtures `db_session`, `client` (admin autenticado), `unauth_client`; `AUTH_PBKDF2_ITERATIONS=1000` |
 | `test_rbac.py` | 30 | Autorização por perfil (API/web), deny by default, menu, bloqueio, lockout, último admin, auditoria |
-| `test_ad.py` | 29 | Login híbrido, provisionamento, sem-mapeamento, prioridade, conta desabilitada, 503, vínculo, tela AD, auditoria AD, regressões ldap3 |
-| `test_auth.py` | 16 | Redirects 303/401, login válido/inválido, open redirect, me/logout, sessão expirada, `create_user` |
+| `test_ad.py` | 32 | Login híbrido, provisionamento, sem-mapeamento, prioridade, conta desabilitada, 503, vínculo, tela AD, auditoria AD, regressões ldap3 |
+| `test_auth.py` | 17 | Redirects 303/401, login válido/inválido, open redirect, me/logout, sessão expirada, `create_user` |
+| `test_custodians_edit.py` | 14 | Edição de colaborador (web + API) |
 | `test_custodian_import.py` | 13 | CSV de colaboradores (parse/exec/preview/export/web) |
+| `test_assets_labels.py` | 12 | Página de etiquetas: permissão, seleção em lote, folha, CSS de impressão, menu ativo |
+| `test_import_asset_location.py` | 12 | Importação CSV de bens com localização |
 | `test_help.py` | 9 | Central de ajuda (acesso, artigos, filtro admin, links) |
 | `test_api.py` | 7 | Health, fluxo asset+movement, duplicatas |
+| `test_navbar.py` | 4 | Estrutura da navbar e guard de menu |
 | `test_movements.py` | 5 | Alocação, devolução, baixa, movimento inicial, QR do termo |
 | `test_assets.py` | 1 | CRUD + depreciação |
 
-Execução: `pytest -v` (ou `python3 -m pytest tests/`). LDAP é mockado nos testes de AD.
+Execução: `pytest -v` (ou `python -m pytest tests/`). LDAP é mockado nos testes de AD.
 
 ---
 

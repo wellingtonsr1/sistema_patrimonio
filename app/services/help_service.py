@@ -17,8 +17,8 @@ Seções de um artigo (campo `sections`):
 - {"heading": ..., "body": ...}   → parágrafos (separados por linha em branco)
 - {"heading": ..., "steps": [...]} → lista numerada (passo a passo)
 - {"heading": ..., "note": ...}    → destaque/aviso
-"""
 
+"""
 from typing import Dict, List, Optional
 
 # ============================================================================
@@ -43,8 +43,8 @@ ARTICLES: List[Dict] = [
                 "body": (
                     "O SisPatrimônio Pro é o sistema de gestão patrimonial do órgão. Ele controla o "
                     "cadastro de equipamentos (computadores, notebooks, monitores, impressoras, servidores "
-                    "e demais bens), a movimentação entre setores e responsáveis, as manutenções e os "
-                    "relatórios do acervo.\n\n"
+                    "e demais bens), a movimentação entre setores e responsáveis, a impressão de "
+                    "etiquetas patrimoniais, as manutenções e os relatórios do acervo.\n\n"
                     "Tudo o que acontece com um bem — entrada, entrega, transferência, manutenção, "
                     "devolução ou baixa — fica registrado no histórico (linha do tempo) do equipamento, "
                     "garantindo rastreabilidade total."
@@ -54,7 +54,7 @@ ARTICLES: List[Dict] = [
                 "heading": "Módulos do sistema",
                 "steps": [
                     "Dashboard — visão geral com indicadores do acervo.",
-                    "Equipamentos — cadastro, consulta, detalhes e importação em massa.",
+                    "Equipamentos — cadastro, consulta, detalhes, etiquetas e importação em massa.",
                     "Fluxo & Movimentação — transferências, entregas, devoluções e baixas.",
                     "Manutenções — ordens de serviço e reparos.",
                     "Colaboradores — cadastro dos responsáveis/custodiantes dos bens.",
@@ -263,6 +263,52 @@ ARTICLES: List[Dict] = [
                 "body": (
                     "Quando uma movimentação gera termo (alocação ou devolução), o link Imprimir Termo "
                     "abre o documento pronto para impressão e assinatura."
+                ),
+            },
+        ],
+    },
+    {
+        "id": "etiquetas-patrimoniais",
+        "title": "Como imprimir etiquetas patrimoniais (QR Code)",
+        "module": "Patrimônio & Equipamentos",
+        "icon": "bi-upc-scan",
+        "audience": "user",
+        "summary": "Selecionar bens e imprimir etiquetas em lote com QR Code e dados do patrimônio.",
+        "keywords": ["etiqueta", "etiquetas", "imprimir", "qr", "código", "lote", "selecionar", "adesivo"],
+        "sections": [
+            {
+                "heading": "Onde fica",
+                "steps": [
+                    "No menu, abra Equipamentos e clique em Etiquetas.",
+                    "Use a busca e os filtros para localizar os bens desejados.",
+                    "Marque os equipamentos (ou use Selecionar todos exibidos).",
+                    "Clique em Imprimir etiquetas para gerar a folha.",
+                ],
+                "body": (
+                    "A seleção fica guardada na própria página (mesmo que você filtre ou troque de "
+                    "página), e o link pode ser compartilhado — quem abrir verá as mesmas etiquetas "
+                    "selecionadas."
+                ),
+            },
+            {
+                "heading": "O que a etiqueta contém",
+                "steps": [
+                    "QR Code — leva à ficha do equipamento quando lido pela câmera do celular.",
+                    "Nº de tombamento (patrimônio).",
+                    "Descrição do bem.",
+                    "Departamento e localização atuais.",
+                ],
+                "note": (
+                    "Os dados vêm direto do cadastro. Se um bem não tiver localização, o campo "
+                    "aparece vazio (—). A impressão usa folha A4 com 10 etiquetas por página; use a "
+                    "prévia (Ctrl+P) para conferir antes de imprimir."
+                ),
+            },
+            {
+                "heading": "Segurança",
+                "body": (
+                    "Imprimir etiquetas não altera nenhum dado do patrimônio — é uma operação apenas "
+                    "de consulta. Requer permissão de visualização de patrimônio."
                 ),
             },
         ],
@@ -738,6 +784,17 @@ ARTICLES: List[Dict] = [
 
 FAQ: List[Dict] = [
     {
+        "question": "A integração com Active Directory/LDAP está disponível?",
+        "answer": (
+            "Sim. A autenticação pode ser integrada ao Active Directory (LDAP/LDAPS) pelo "
+            "administrador, na tela Administração → Integração AD: informa-se o servidor, o Base DN "
+            "e quais grupos do AD correspondem a cada perfil do sistema. Só entra no sistema o "
+            "usuário cujo grupo estiver mapeado para um perfil; contas locais continuam funcionando "
+            "normalmente. Sem a integração configurada, o acesso é feito com usuário e senha "
+            "cadastrados no próprio sistema."
+        ),
+    },
+    {
         "question": "Como localizar um equipamento?",
         "answer": (
             "Acesse Equipamentos e use a caixa de busca (tombamento, nome, marca, modelo ou número de "
@@ -821,13 +878,6 @@ FAQ: List[Dict] = [
             "status volta para DISPONIVEL e o termo de devolução é gerado."
         ),
     },
-    {
-        "question": "A integração com Active Directory/LDAP está disponível?",
-        "answer": (
-            "Ainda não. O sistema está preparado para a futura integração com Active Directory/LDAP, "
-            "mas hoje a autenticação é feita com usuário e senha locais cadastrados no próprio sistema."
-        ),
-    },
 ]
 
 # ============================================================================
@@ -850,7 +900,7 @@ CATEGORIES: List[Dict] = [
         "description": "Cadastrar, consultar e importar os bens do acervo.",
         "audience": "user",
         "article_ids": ["cadastrar-equipamento", "consultar-equipamentos", "detalhes-do-bem",
-                        "importar-equipamentos", "corrigir-informacoes"],
+                        "etiquetas-patrimoniais", "importar-equipamentos", "corrigir-informacoes"],
     },
     {
         "key": "movimentacao",

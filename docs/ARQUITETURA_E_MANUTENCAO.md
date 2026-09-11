@@ -20,15 +20,16 @@
 
 1. **Dashboard** — KPIs do acervo (`app/services/dashboard_service.py`, template `dashboard.html`).
 2. **Patrimônio / Equipamentos** — CRUD de bens, ficha técnica, QR Code, depreciação linear, importação CSV (`app/services/asset_service.py`, `app/services/import_service.py`).
-3. **Fluxo & Movimentação** — motor de movimentações com trilha imutável e Termo de Responsabilidade (`app/services/movement_service.py`).
-4. **Manutenções** — ordens de serviço preventiva/corretiva/upgrade, integradas ao fluxo (`app/services/maintenance_service.py`).
-5. **Colaboradores (custodiantes) & Locais** — cadastro e importação CSV (`custodian_service.py`, `location_service.py`, `custodian_import_service.py`).
-6. **Relatórios & Exportações** — dashboard-stats e 3 exportações CSV (`report_service.py`).
-7. **Administração** — usuários, perfis & permissões (RBAC), auditoria, Integração AD (`app/web/admin_routes.py`).
-8. **Central de Ajuda** — manual embutido em `/ajuda` (`app/services/help_service.py`).
-9. **Autenticação & Sessões** — local (PBKDF2) + Active Directory (LDAP/LDAPS) com sessão server-side (`auth_service.py`, `auth_provider.py`, `session_service.py`).
-10. **Auditoria** — trilha somente-leitura (`audit_service.py`, modelo `AuditLog`).
-11. **CLI** — interface de linha de comando (`app/cli.py`).
+3. **Etiquetas** — seleção e impressão de etiquetas patrimoniais em lote com QR Code (`/assets/labels`; reutiliza `AssetService.get_all` e o QRCode.js já usado na ficha/termo).
+4. **Fluxo & Movimentação** — motor de movimentações com trilha imutável e Termo de Responsabilidade (`app/services/movement_service.py`).
+5. **Manutenções** — ordens de serviço preventiva/corretiva/upgrade, integradas ao fluxo (`app/services/maintenance_service.py`).
+6. **Colaboradores (custodiantes) & Locais** — cadastro, edição e importação CSV (`custodian_service.py`, `location_service.py`, `custodian_import_service.py`, `location_import_service.py`).
+7. **Relatórios & Exportações** — dashboard-stats e 3 exportações CSV (`report_service.py`).
+8. **Administração** — usuários, perfis & permissões (RBAC), auditoria, Integração AD (`app/web/admin_routes.py`).
+9. **Central de Ajuda** — manual embutido em `/ajuda` (`app/services/help_service.py`).
+10. **Autenticação & Sessões** — local (PBKDF2) + Active Directory (LDAP/LDAPS) com sessão server-side (`auth_service.py`, `auth_provider.py`, `session_service.py`).
+11. **Auditoria** — trilha somente-leitura (`audit_service.py`, modelo `AuditLog`).
+12. **CLI** — interface de linha de comando (`app/cli.py`).
 
 ### Fluxo geral da aplicação
 
@@ -83,6 +84,7 @@ sistema_patrimonio/
 │   ├── config.py              # Único ponto de configuração: app, banco, autenticação (AUTH_*), AD (AD_*) via variáveis de ambiente
 │   ├── database.py            # engine/SessionLocal/Base; get_db(); init_db(); _ensure_schema_migrations() (migração leve idempotente)
 │   ├── cli.py                 # CLI: stats, list, show, move, create-user
+│   ├── logging_config.py      # Logs técnicos: data/logs/app.log e app.error.log (rotação 5 MB × 5 backups; chamado por run.py)
 │   ├── api/                   # API REST /api/v1
 │   │   ├── v1_router.py       # Agrega auth + demais roteadores (estes com require_api_auth)
 │   │   ├── deps.py            # require_api_auth, require_web_auth, require_permission (RBAC deny-by-default), stash_access
@@ -99,13 +101,13 @@ sistema_patrimonio/
 │       ├── routes.py          # Páginas de negócio + login/logout + configuração Jinja2Templates (context processor _inject_current_user, função can())
 │       ├── admin_routes.py    # /admin/users*, /admin/roles*, /admin/audit, /profile/password, /admin/ad*
 │       ├── help_routes.py     # /ajuda e /ajuda/{article_id}
-│       ├── templates/         # 33 templates Jinja2 (base.html, dashboard, assets/, movements/, custodians/, locations/, maintenances/, reports/, admin/, ajuda/, profile/, 403/404, login)
+│       ├── templates/         # 37 templates Jinja2 (base.html, dashboard, assets/ [inclui labels], movements/, custodians/, locations/ [inclui import], maintenances/, reports/, admin/, ajuda/, profile/, setup, 403/404, login)
 │       └── static/
 │           ├── css/style.css  # CSS customizado (tema claro/escuro)
 │           └── js/main.js     # Dark mode, tooltips, alertas, contadores animados, sidebar mobile
 ├── data/
 │   └── patrimonio.db          # Banco SQLite (criado no primeiro start; NÃO versionar dados reais)
-├── tests/                     # Suite pytest: 9 arquivos, 110 testes
+├── tests/                     # Suite pytest: 12 arquivos, 156 testes (3 falhas conhecidas — ver §19)
 ├── docs/                      # Esta documentação
 ├── seed_demo.py               # Carga de demonstração (recria as tabelas: drop_all + create_all)
 ├── run.py                     # Ponto de entrada do servidor (uvicorn)
@@ -138,6 +140,8 @@ python run.py
 init_db()  (app/database.py)
   ├── Base.metadata.create_all() — cria tabelas novas (importa app.models para registrá-las)
   └── _ensure_schema_migrations() — ALTER TABLE ADD COLUMN condicionais (idempotente, só SQLite)
+  ↓
+configure_logging()  (app/logging_config.py — logs técnicos em data/logs/)
   ↓
 uvicorn.run("app.main:app", host=APP_HOST, port=APP_PORT, reload=False)
   ↓ (startup — lifespan em app/main.py)
@@ -582,6 +586,12 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
     valores BR (`1.234,56`), datas `DD/MM/AAAA` ou `AAAA-MM-DD`; fluxo web em duas etapas
     (preview → confirm) e endpoint direto `/api/v1/assets/import/csv`; opção
     `skip_duplicates` (ignora ou **atualiza** o existente).
+  - **Etiquetas** (`GET /assets/labels`, handler `assets_labels` em `app/web/routes.py`):
+    seleção em lote com os mesmos filtros da listagem; seleção persistida na URL
+    (`?selected=<ids>`); folha renderizada client-side a partir de payload embutido na página;
+    QR Code gerado com a mesma chamada qrcodejs da ficha (`origin + "/assets/{id}"`);
+    grade A4 de 2 colunas com `@media print` isolando a folha. Somente leitura: nenhum
+    dado patrimonial é alterado. Acesso: `patrimonio.visualizar`.
 
 ### 12.2 Fluxo & Movimentação
 
@@ -623,6 +633,8 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
 - **Arquivos:** `custodian_service.py`, `location_service.py`, `custodian_import_service.py`,
   `app/api/custodians_api.py`, `app/api/locations_api.py`, templates `custodians/`, `locations/`.
 - **Permissões:** `colaboradores.*`, `locais.*`.
+- **Importação CSV de locais:** `location_import_service.py` (`parse_locations_csv`, `preview_locations_import`, `execute_locations_import`), telas `/locations/import` + `/locations/import/confirm` (preview → confirm), permissão `locais.criar`.
+- **Edição de colaborador:** telas `GET/POST /custodians/{id}/edit` (`colaboradores.editar`) e API `PUT /api/v1/custodians/{id}`.
 - **Regras reais:** matrícula e e-mail únicos (matrícula normalizada para maiúsculas, e-mail
   para minúsculas na importação); `count_assigned_assets` exclui bens `BAIXADO`; importação CSV
   de colaboradores valida e-mail por regex, converte `ativo` (sim/não/true/false/1/0/ativo/inativo)
@@ -645,7 +657,8 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
 
 ### 12.7 Central de Ajuda
 
-- **Arquivos:** `app/services/help_service.py` (conteúdo: `ARTICLES`, `FAQ`, `CATEGORIES`),
+- **Arquivos:** `app/services/help_service.py` (conteúdo: `ARTICLES` (21 artigos, inclui
+  Etiquetas), `FAQ` (12 perguntas, inclui a integração AD real), `CATEGORIES` (7)),
   `app/web/help_routes.py`, templates `ajuda/`.
 - `/ajuda` e `/ajuda/{article_id}`; artigos `audience="admin"` exigem uma das permissões
   `usuarios.visualizar`, `perfis.visualizar`, `auditoria.visualizar`. Busca client-side via
@@ -663,8 +676,9 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
 - **JS (`main.js`):** tema claro/escuro (localStorage `sispatrim-theme`, sincronizado com
   `data-bs-theme`), tooltips Bootstrap, auto-dismiss de alertas, contadores animados, sidebar mobile.
 - **Gráficos:** `dashboard.html` usa `Chart(...)` (pizza de categorias; barras conforme o template).
-- **QR Code:** `assets/detail.html` renderiza QRCode apontando para a rota do termo
-  (testado por `test_term_page_qr_code_points_to_term_route`).
+- **QR Code:** qrcodejs client-side; a ficha (`assets/detail.html`) gera QR apontando para a
+  rota do termo (testado por `test_term_page_qr_code_points_to_term_route`) e a página de
+  Etiquetas reutiliza o mesmo padrão de chamada para `origin + "/assets/{id}"`.
 - **Onde mexer em cada tela:** templates em `app/web/templates/<módulo>/` + handler em
   `app/web/routes.py` (ou `admin_routes.py`). Menu/botões condicionais usam
   `{% if can('modulo.acao') %}` — **a segurança real está no backend** (`require_permission`).
@@ -726,20 +740,24 @@ Códigos de erro padronizados: `400` (regra de negócio via `ValueError`), `401`
 | GET/POST | `/assets/import` | importação (preview) | `patrimonio.criar` |
 | POST | `/assets/import/confirm` | `confirm_import_assets` | `patrimonio.criar` |
 | GET | `/assets/{id}` | `view_asset_detail` | `patrimonio.visualizar` |
+| GET | `/assets/labels` | `assets_labels` (etiquetas em lote) | `patrimonio.visualizar` |
 | GET | `/movements` | `list_movements_view` | `movimentacao.visualizar` |
 | GET/POST | `/movements/new` | nova movimentação | `movimentacao.criar` |
 | GET | `/movements/{id}/term` | `view_movement_term` | `movimentacao.visualizar` |
 | GET | `/custodians` | `list_custodians_view` | `colaboradores.visualizar` |
 | GET/POST | `/custodians/new` | novo colaborador | `colaboradores.criar` |
+| GET/POST | `/custodians/{id}/edit` | edição de colaborador | `colaboradores.editar` |
 | GET/POST | `/custodians/import` (+`/confirm`) | importação | `colaboradores.criar` |
 | GET | `/custodians/{id}` | `view_custodian_detail` | `colaboradores.visualizar` |
 | GET | `/locations` | `list_locations_view` | `locais.visualizar` |
+| GET/POST | `/locations/import` (+`/confirm`) | importação de locais (preview) | `locais.criar` |
 | GET/POST | `/locations/new` | novo local | `locais.criar` |
 | GET | `/maintenances` | `list_maintenances_view` | `manutencao.visualizar` |
 | GET/POST | `/maintenances/new` | `create_maintenance_form` | `manutencao.criar` |
 | POST | `/maintenances/{id}/complete` | `complete_maintenance_form` | `manutencao.finalizar` |
 | GET | `/reports/inventory` · `/reports/movements` · `/reports/custodians` | páginas de relatório | `relatorios.visualizar` |
 | GET | `/ajuda`, `/ajuda/{article_id}` | central de ajuda | autenticada (admin-artigos filtrados) |
+| GET/POST | `/setup` | primeiro acesso (cria o 1º admin) | pública em estado de 1º acesso (ver §20/§21) |
 | GET | `/admin` | `admin_index` (redireciona conforme permissão) | autenticada |
 | GET | `/admin/users` | lista/pesquisa | `usuarios.visualizar` |
 | GET/POST | `/admin/users/new` | criação | `usuarios.criar` |
@@ -890,8 +908,9 @@ Constantes não-env: `APP_NAME`, `APP_VERSION`, `APP_DESCRIPTION`, `COMPANY_NAME
    (busca vs. autenticação)", que descreve a implementação anterior de conta de serviço.
 5. **Inconsistência de datas**: `asset_service.py` e `movement_service.py` usam `datetime.now()`
    (hora local) enquanto `auth_service.py`, `session_service.py` e os modelos usam `datetime.utcnow()`.
-6. **`help_service.py` (FAQ)** informa que a integração AD "ainda não está disponível", o que
-   contradiz a implementação atual em `ad_ldap.py`/`ad_service.py`.
+6. **`help_service.py` (FAQ)** informava que a integração AD "ainda não está disponível", o que
+   contradizia a implementação em `ad_ldap.py`/`ad_service.py` — **corrigido nesta atualização
+   da documentação** (FAQ e artigos agora descrevem a integração AD real).
 7. Permissões `patrimonio.excluir`, `movimentacao.editar`, `movimentacao.cancelar` e
    `manutencao.editar` existem no catálogo mas não são exigidas por nenhuma rota (não há
    exclusão de bem nem edição/cancelamento de movimentação implementados).
@@ -900,22 +919,55 @@ Constantes não-env: `APP_NAME`, `APP_VERSION`, `APP_DESCRIPTION`, `COMPANY_NAME
 9. Sem `LICENSE` no repositório.
 10. `data/patrimonio.db` é versionado no repositório atual (arquivo binário alterado a cada
     execução local) — o README recomenda não versionar dados reais.
+11. **`movement_service.py` linha ~210 (`get_timeline_for_asset`)** referencia a constante
+    inexistente `ACTION_MOVEMENT`/`ACTION_MAINTENANCE` (as corretas são `ACTION_MOVEMENT` =
+    `"MOVIMENTACAO"` e `ACTION_MAINTENANCE` = `"MANUTENCAO"`, já definidas em
+    `audit_service.py`, mas não importadas no módulo). Resultado: `NameError` quando a linha
+    do tempo encontra um evento de auditoria — **quebra a página de detalhes do bem
+    (`/assets/{id}`), o endpoint `/api/v1/assets/{id}/timeline` e o CLI `show`**. Coberto
+    pelos 3 testes atualmente falhando (ver §19). Registrado como ponto de atenção — não
+    corrigido nesta documentação (fora do escopo).
 
 ---
 
 ## 19. Testes
 
-A suite de testes (9 arquivos, 110 testes) cobre autenticação, RBAC, integração AD (com LDAP mockado), API, movimentações, bens, importações e central de ajuda.
+A suíte atual tem **12 arquivos e 156 testes coletados** (confirmado com `pytest --collect-only`):
+153 passam e **3 falham com o mesmo erro latente** documentado no §18 item 11 (`NameError:
+ACTION_MOVEMENT` em `movement_service.get_timeline_for_asset`) — os testes esperam objetos
+ORM e a função atual retorna dicts mesclando movimentações + auditoria; o bug de importação
+atinge o mesmo fluxo. Cobrem autenticação, RBAC, integração AD (com LDAP mockado), API,
+movimentações, bens, etiquetas, navbar, importações e central de ajuda.
 
-Execução: `pytest -v` (ou `python3 -m pytest tests/`).
+Execução: `pytest -v` (ou `python -m pytest tests/`).
 
-### Execução
+### Falhas conhecidas (estado real, não corrigidas nesta documentação)
 
-```bash
-pytest -v
-```
+| Teste | Erro |
+|---|---|
+| `tests/test_movements.py::test_asset_creation_registers_initial_movement` | `'dict' object has no attribute 'movement_type'` (timeline retorna dicts) |
+| `tests/test_movements.py::test_allocation_and_custody_flow` | idem |
+| `tests/test_api.py::test_api_create_asset_and_move` | `NameError: name 'ACTION_MOVEMENT' is not defined` (`movement_service.py:210`) |
 
-A suíte cobre: **controle de acesso** (`tests/test_rbac.py`): autorização por perfil em APIs e páginas, deny by default, menu dinâmico, bloqueio/desbloqueio de usuário, lockout por tentativas, auditoria, proteção do último administrador e tentativas de escalação de privilégios; **autenticação** (`tests/test_auth.py`); **integração AD** (`tests/test_ad.py`, com a camada LDAP mockada); movimentações, bens, importações e central de ajuda.
+### Distribuição por arquivo
+
+| Arquivo | Testes | Cobre |
+|---|---|---|
+| `tests/test_rbac.py` | 30 | perfis/permissões em API e web, deny by default, menu dinâmico, lockout, bloqueio, último admin, auditoria, escalação |
+| `tests/test_ad.py` | 32 | login híbrido, provisionamento pós-mapeamento, sem-mapeamento, prioridade de grupos, conta desabilitada, 503, vínculo colaborador, tela AD, auditoria AD, regressões ldap3 |
+| `tests/test_auth.py` | 17 | redirects, login válido/inválido, open redirect, me/logout, sessão expirada, `create_user` |
+| `tests/test_custodians_edit.py` | 14 | edição de colaborador (web + API), unicidades, auditoria |
+| `tests/test_custodian_import.py` | 13 | CSV de colaboradores (parse/exec/preview/export/web) |
+| `tests/test_assets_labels.py` | 12 | página de etiquetas: acesso por permissão, seleção em lote, folha, dados embutidos, CSS de impressão, estado ativo do menu |
+| `tests/test_import_asset_location.py` | 12 | importação CSV de bens com localização |
+| `tests/test_help.py` | 9 | central de ajuda (acesso, artigos, filtro admin, links) |
+| `tests/test_api.py` | 7 | health, fluxo asset+movement, duplicatas |
+| `tests/test_navbar.py` | 4 | estrutura da navbar (logo, itens, guard de menu) |
+| `tests/test_movements.py` | 5 | alocação, devolução, baixa, movimento inicial, QR do termo (2 falham — ver acima) |
+| `tests/test_assets.py` | 1 | CRUD + depreciação |
+
+Infra (`tests/conftest.py`): SQLite **em memória** (`StaticPool`), `AUTH_PBKDF2_ITERATIONS=1000`,
+fixtures `client` (admin) e `unauth_client`; LDAP mockado nos testes de AD.
 
 ---
 
@@ -1132,14 +1184,16 @@ app.cli ──► services/* (mesma camada de negócio das rotas)
 | Perfis/permissões | `app/services/permission_service.py` (catálogo + seed), `app/web/admin_routes.py` (seção PERFIS) |
 | Proteger nova rota | `app/api/deps.py::require_permission` (+ `can()` no template) |
 | Equipamentos | `app/services/asset_service.py`, `app/api/assets_api.py`, `app/web/routes.py`, templates `assets/` |
-| Importação CSV | `app/services/import_service.py` (bens) e `custodian_import_service.py` (colaboradores) |
+| Importação CSV | `app/services/import_service.py` (bens), `custodian_import_service.py` (colaboradores) e `location_import_service.py` (locais) |
 | Movimentações/Termo | `app/services/movement_service.py`, templates `movements/term.html` |
 | Colaboradores | `app/services/custodian_service.py`; Locais: `location_service.py` |
 | Manutenção | `app/services/maintenance_service.py` |
 | Dashboard/Relatórios | `dashboard_service.py`, `report_service.py`, `app/api/reports_api.py` |
 | Auditoria | `app/services/audit_service.py`, `app/web/admin_routes.py` (seção AUDITORIA) |
 | Ajuda/Manual | `app/services/help_service.py` (conteúdo) |
+| Etiquetas | `app/web/routes.py::assets_labels`, template `assets/labels.html`, CSS de impressão em `style.css` |
 | Layout/CSS/JS | `app/web/templates/base.html`, `app/web/static/css/style.css`, `app/web/static/js/main.js` |
+| Logs técnicos | `app/logging_config.py` → `data/logs/app.log` e `app.error.log` |
 | Configuração/env | `app/config.py` |
 | Banco/migração | `app/models/*` + `app/database.py::_ensure_schema_migrations` |
 | CLI | `app/cli.py` |
@@ -1169,8 +1223,8 @@ app.cli ──► services/* (mesma camada de negócio das rotas)
 9. **Testes**: `pytest` deve continuar passando; comportamentos de segurança (403/401,
    lockout, último admin, sem-mapeamento-AD) têm testes dedicados que precisam ser preservados.
 10. **Atenção aos pontos de atenção listados em §18** (CSRF, `AUTH_PROVIDER` inerte, envs
-    legadas de AD, datas `now` × `utcnow`, FAQ da ajuda desatualizado sobre AD, catálogo com
-    permissões sem rota) antes de qualquer mudança nessas áreas.
+    legadas de AD, datas `now` × `utcnow`, `NameError` latente em `get_timeline_for_asset`,
+    catálogo com permissões sem rota) antes de qualquer mudança nessas áreas.
 
 ---
 
