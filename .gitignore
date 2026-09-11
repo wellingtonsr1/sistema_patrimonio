@@ -4,8 +4,22 @@
 # Testes
 tests/
 
-# Banco de dados SQLite do SisPatrimônio
+# Banco de dados SQLite do SisPatrimônio (dados locais — nunca versionar)
 *.db
 *.sqlite
 *.sqlite3
 data/patrimonio.db
+
+# Logs técnicos gerados em runtime
+*.log
+data/logs/
+
+# Bytecode e caches de ferramentas
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Backups de editor
+*~
+.*.un~
+*.swp

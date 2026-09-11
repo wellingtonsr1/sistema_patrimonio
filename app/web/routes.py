@@ -5,6 +5,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, UploadFile, File, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import Session, joinedload
 from pathlib import Path
 
@@ -32,6 +33,7 @@ from app.api.deps import _client_ip, get_current_user, require_permission
 from app.config import AUTH_ADMIN_PASSWORD
 from app.models.user import User
 from app.models.user_role import UserRole
+from app.models.setup_claim import SetupClaim
 from app.services.auth_provider import resolve_authentication
 from app.services.auth_service import AccountLockedError, create_user
 from app.services.permission_service import (
@@ -1530,6 +1532,10 @@ def view_custodians_report(request: Request, db: Session = Depends(get_db)):
 # PRIMEIRO ACESSO / CONFIGURAÇÃO INICIAL (somente instalação nova)
 # ============================================================================
 
+# Identificador do singleton de reivindicação do primeiro acesso.
+SETUP_CLAIM_ID = 1
+
+
 def _first_access_enabled(db: Session) -> bool:
     """
     O fluxo de primeiro acesso só é ativado quando:
@@ -1537,15 +1543,38 @@ def _first_access_enabled(db: Session) -> bool:
       ambiente não será preparado), E
     - ainda não existe nenhum usuário no banco.
 
-    Essa verificação é feita dentro da própria requisição, com a sessão do
-    request, e a criação posterior ocorre no mesmo request/commit — o que
-    impede que duas requisições concorrentes criem dois administradores
-    (SQLite serializa escritas e a checagem + INSERT acontecem no mesmo
-    commit; a segunda requisição verá o usuário já existente).
+    Esta é apenas a verificação de exibição/prescrição: ela não é suficiente
+    sozinha para autorizar a criação do administrador, pois duas requisições
+    concorrentes poderiam vê-la verdadeira ao mesmo tempo. A exclusividade é
+    garantida por `_claim_first_access`, que reivindica o bootstrap com uma
+    escrita atômica antes de criar o usuário.
     """
     if AUTH_ADMIN_PASSWORD:
         return False
     return db.query(User).first() is None
+
+
+def _claim_first_access(db: Session) -> bool:
+    """
+    Reivindica atomicamente o primeiro acesso.
+
+    Insere o registro singleton (`setup_claims.id = 1`): a chave primária é a
+    garantia de exclusividade, pois apenas uma requisição consegue inserir a
+    linha. Quem chega primeiro segue para a criação do administrador no mesmo
+    commit; as concorrentes caem em violação de unicidade (`IntegrityError`) ou
+    em bloqueio de escrita do SQLite (`OperationalError`) e recebem False.
+
+    A reivindicação não é confirmada enquanto `db.commit()` não acontece: se a
+    criação do administrador falhar, o `db.rollback()` libera o registro e o
+    primeiro acesso volta a ficar disponível.
+    """
+    db.add(SetupClaim(id=SETUP_CLAIM_ID))
+    try:
+        db.flush()
+    except (IntegrityError, OperationalError):
+        db.rollback()
+        return False
+    return True
 
 
 @web_router.get("/setup", response_class=HTMLResponse)
@@ -1575,9 +1604,8 @@ def first_access_submit(
     """Processa a criação do primeiro administrador."""
     ip = _client_ip(request)
 
-    # Revisa se a instalação ainda está em primeiro acesso (idempotente e
-    # seguro contra condição de corrida: se outro request já criou o usuário,
-    # redireciona para o login).
+    # Pré-checagem (barata): instalação nova e sem bootstrap por variável de
+    # ambiente. NÃO é a garantia de exclusividade — ver _claim_first_access.
     if not _first_access_enabled(db):
         return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -1604,6 +1632,25 @@ def first_access_submit(
             context={"error": "As senhas não coincidem."},
         )
 
+    # Reivindica o bootstrap de forma atômica ANTES de criar o usuário. A
+    # partir daqui, a reivindicação só é confirmada junto com a criação do
+    # administrador (mesmo commit); qualquer falha faz rollback e libera o
+    # primeiro acesso.
+    if not _claim_first_access(db):
+        logger.warning(
+            "Primeiro acesso já reivindicado/em andamento; requisição concorrente "
+            "redirecionada ao login (ip=%s)",
+            ip,
+        )
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    # Defesa em profundidade: se algum usuário já existir (ex.: banco legado
+    # com reivindicação inexistente), descarta a reivindicação na mesma
+    # transação e volta para o login.
+    if db.query(User).first() is not None:
+        db.rollback()
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
     try:
         admin = create_user(
             db,
@@ -1614,11 +1661,18 @@ def first_access_submit(
             is_admin=True,
         )
     except ValueError as err:
+        # Libera a reivindicação para que o primeiro acesso possa ser refeito.
+        db.rollback()
         return templates.TemplateResponse(
             request=request,
             name="setup.html",
             context={"error": str(err)},
         )
+    except IntegrityError:
+        # Outra requisição criou o primeiro usuário neste intervalo.
+        db.rollback()
+        logger.warning("Primeiro acesso concluído por outra requisição concorrente")
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
     # Garante catálogo de permissões e o perfil Administrador (idempotente)
     ensure_default_roles(db)
