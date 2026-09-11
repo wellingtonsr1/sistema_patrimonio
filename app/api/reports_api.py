@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, Query
+from datetime import datetime
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.api.deps import require_permission
@@ -26,13 +28,134 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/inventory/csv", dependencies=[Depends(require_permission("relatorios.exportar"))])
-def export_inventory_csv(db: Session = Depends(get_db)):
-    """Exporta o inventário geral completo em formato CSV"""
-    csv_content = ReportService.generate_inventory_csv(db)
+def export_inventory_csv(
+    db: Session = Depends(get_db),
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    location_id: Optional[str] = Query(None),
+    custodian_id: Optional[str] = Query(None),
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    department: Optional[str] = Query(None),
+    maintenance_status: Optional[str] = Query(None),
+    purchase_date_from: Optional[str] = Query(None),
+    purchase_date_to: Optional[str] = Query(None),
+):
+    """Exporta o inventário filtrado em formato CSV"""
+    # Converter IDs de string para int (ou None se vazio)
+    loc_id = int(location_id) if location_id and location_id.strip().isdigit() else None
+    cust_id = int(custodian_id) if custodian_id and custodian_id.strip().isdigit() else None
+    
+    # Converter datas
+    date_from = datetime.strptime(purchase_date_from, "%Y-%m-%d") if purchase_date_from else None
+    date_to = datetime.strptime(purchase_date_to, "%Y-%m-%d") if purchase_date_to else None
+    
+    csv_content = ReportService.generate_inventory_csv(
+        db, search=search, status=status, category=category,
+        location_id=loc_id, custodian_id=cust_id,
+        brand=brand, model=model, department=department,
+        maintenance_status=maintenance_status,
+        purchase_date_from=date_from, purchase_date_to=date_to
+    )
+    
+    filename = "inventario_patrimonio"
+    if search or status or category or loc_id or cust_id or brand or model or department or maintenance_status or date_from or date_to:
+        filename += "_filtrado"
+    filename += ".csv"
+    
     return Response(
         content=csv_content,
         media_type="text/csv; charset=utf-8-sig",
-        headers={"Content-Disposition": "attachment; filename=inventario_patrimonio.csv"}
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/inventory/excel", dependencies=[Depends(require_permission("relatorios.exportar"))])
+def export_inventory_excel(
+    db: Session = Depends(get_db),
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    location_id: Optional[str] = Query(None),
+    custodian_id: Optional[str] = Query(None),
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    department: Optional[str] = Query(None),
+    maintenance_status: Optional[str] = Query(None),
+    purchase_date_from: Optional[str] = Query(None),
+    purchase_date_to: Optional[str] = Query(None),
+):
+    """Exporta o inventário filtrado em formato Excel (.xlsx)"""
+    # Converter IDs de string para int (ou None se vazio)
+    loc_id = int(location_id) if location_id and location_id.strip().isdigit() else None
+    cust_id = int(custodian_id) if custodian_id and custodian_id.strip().isdigit() else None
+    
+    # Converter datas
+    date_from = datetime.strptime(purchase_date_from, "%Y-%m-%d") if purchase_date_from else None
+    date_to = datetime.strptime(purchase_date_to, "%Y-%m-%d") if purchase_date_to else None
+    
+    excel_content = ReportService.generate_inventory_excel(
+        db, search=search, status=status, category=category,
+        location_id=loc_id, custodian_id=cust_id,
+        brand=brand, model=model, department=department,
+        maintenance_status=maintenance_status,
+        purchase_date_from=date_from, purchase_date_to=date_to
+    )
+    
+    filename = "inventario_patrimonio"
+    if search or status or category or loc_id or cust_id or brand or model or department or maintenance_status or date_from or date_to:
+        filename += "_filtrado"
+    filename += ".xlsx"
+    
+    return Response(
+        content=excel_content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/inventory/pdf", dependencies=[Depends(require_permission("relatorios.exportar"))])
+def export_inventory_pdf(
+    db: Session = Depends(get_db),
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    location_id: Optional[str] = Query(None),
+    custodian_id: Optional[str] = Query(None),
+    brand: Optional[str] = Query(None),
+    model: Optional[str] = Query(None),
+    department: Optional[str] = Query(None),
+    maintenance_status: Optional[str] = Query(None),
+    purchase_date_from: Optional[str] = Query(None),
+    purchase_date_to: Optional[str] = Query(None),
+):
+    """Exporta o inventário filtrado em formato PDF"""
+    # Converter IDs de string para int (ou None se vazio)
+    loc_id = int(location_id) if location_id and location_id.strip().isdigit() else None
+    cust_id = int(custodian_id) if custodian_id and custodian_id.strip().isdigit() else None
+    
+    # Converter datas
+    date_from = datetime.strptime(purchase_date_from, "%Y-%m-%d") if purchase_date_from else None
+    date_to = datetime.strptime(purchase_date_to, "%Y-%m-%d") if purchase_date_to else None
+    
+    pdf_content = ReportService.generate_inventory_pdf(
+        db, search=search, status=status, category=category,
+        location_id=loc_id, custodian_id=cust_id,
+        brand=brand, model=model, department=department,
+        maintenance_status=maintenance_status,
+        purchase_date_from=date_from, purchase_date_to=date_to
+    )
+    
+    filename = "inventario_patrimonio"
+    if search or status or category or loc_id or cust_id or brand or model or department or maintenance_status or date_from or date_to:
+        filename += "_filtrado"
+    filename += ".pdf"
+    
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 

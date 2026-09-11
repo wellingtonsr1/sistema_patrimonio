@@ -11,9 +11,22 @@
     </div>
     <div class="d-flex gap-2">
         {% if can('relatorios.exportar') %}
-        <a href="/reports/inventory" class="btn btn-ghost">
-            <i class="bi bi-upload"></i> Exportar CSV
-        </a>
+        <div class="dropdown">
+            <button class="btn btn-ghost" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-download me-1"></i> Exportar <i class="bi bi-chevron-down ms-1"></i>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/api/v1/reports/inventory/csv?search={{ search }}&status={{ selected_status }}&category={{ selected_category }}&location_id={{ selected_location }}&custodian_id={{ selected_custodian }}&brand={{ selected_brand }}&model={{ selected_model }}&department={{ selected_department }}&maintenance_status={{ selected_maintenance }}&purchase_date_from={{ selected_date_from }}&purchase_date_to={{ selected_date_to }}">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> CSV
+                </a></li>
+                <li><a class="dropdown-item" href="/api/v1/reports/inventory/excel?search={{ search }}&status={{ selected_status }}&category={{ selected_category }}&location_id={{ selected_location }}&custodian_id={{ selected_custodian }}&brand={{ selected_brand }}&model={{ selected_model }}&department={{ selected_department }}&maintenance_status={{ selected_maintenance }}&purchase_date_from={{ selected_date_from }}&purchase_date_to={{ selected_date_to }}">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Excel (.xlsx)
+                </a></li>
+                <li><a class="dropdown-item" href="/api/v1/reports/inventory/pdf?search={{ search }}&status={{ selected_status }}&category={{ selected_category }}&location_id={{ selected_location }}&custodian_id={{ selected_custodian }}&brand={{ selected_brand }}&model={{ selected_model }}&department={{ selected_department }}&maintenance_status={{ selected_maintenance }}&purchase_date_from={{ selected_date_from }}&purchase_date_to={{ selected_date_to }}">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                </a></li>
+            </ul>
+        </div>
         {% endif %}
         {% if can('patrimonio.criar') %}
         <a href="/assets/import" class="btn btn-ghost">
