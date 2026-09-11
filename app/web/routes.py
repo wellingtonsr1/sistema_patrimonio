@@ -5,13 +5,14 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Request, Form, HTTPException, UploadFile, File, status, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from pathlib import Path
 
 from app.database import get_db
 from app.config import APP_NAME, APP_VERSION, COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS, AUTH_COOKIE_NAME
 from app.models.enums import AssetStatus, AssetCondition, AssetCategory, MovementType, MaintenanceType, MaintenanceStatus
 from app.models.location import Location
+from app.models.asset import Asset
 from app.schemas.asset import AssetCreate, AssetUpdate
 from app.schemas.movement import MovementCreate, MovementFilter
 from app.schemas.custodian import CustodianCreate, CustodianUpdate
@@ -350,6 +351,101 @@ def list_assets(
             "categories": AssetCategory,
             "statuses": AssetStatus,
             "active_tab": "assets"
+        }
+    )
+
+
+@web_router.get("/assets/labels", response_class=HTMLResponse, dependencies=[Depends(require_permission("patrimonio.visualizar"))])
+def assets_labels(
+    request: Request,
+    search: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    category_filter: Optional[str] = None,
+    location_id: Optional[str] = Query(None),
+    custodian_id: Optional[str] = Query(None),
+    brand_filter: Optional[str] = Query(None),
+    model_filter: Optional[str] = Query(None),
+    department_filter: Optional[str] = Query(None),
+    selected: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Página de seleção e impressão de etiquetas patrimoniais em lote.
+
+    Somente leitura: não altera registros patrimoniais. O QR Code reutiliza a
+    mesma biblioteca e o mesmo conteúdo da ficha do bem (/assets/{id}).
+    """
+    loc_id = int(location_id) if location_id and location_id.strip().isdigit() else None
+    cust_id = int(custodian_id) if custodian_id and custodian_id.strip().isdigit() else None
+    status_enum = AssetStatus(status_filter) if status_filter and status_filter in [e.value for e in AssetStatus] else None
+    cat_enum = AssetCategory(category_filter) if category_filter and category_filter in [e.value for e in AssetCategory] else None
+
+    assets, total = AssetService.get_all(
+        db, search=search, status=status_enum, category=cat_enum,
+        location_id=loc_id, custodian_id=cust_id,
+        brand=brand_filter, model=model_filter,
+        department=department_filter,
+        limit=200
+    )
+    locations = LocationService.get_all(db)
+    custodians = CustodianService.get_all(db, active_only=True)
+
+    departments = db.query(Location.department).distinct().filter(Location.department != None).all()
+    departments = [d[0] for d in departments if d[0]]
+
+    # Seleção em lote (somente leitura — ids validados e ordenados como escolhidos)
+    selected_ids: list = []
+    if selected:
+        for part in selected.split(","):
+            part = part.strip()
+            if part.isdigit():
+                val = int(part)
+                if val not in selected_ids:
+                    selected_ids.append(val)
+    selected_assets: list = []
+    if selected_ids:
+        selected_assets = db.query(Asset).options(joinedload(Asset.location)).filter(Asset.id.in_(selected_ids)).all()
+        selected_assets.sort(key=lambda a: selected_ids.index(a.id))
+
+    # Dados para atualização ao vivo da folha de etiquetas (sem recarregar a página)
+    payload_assets = {a.id: a for a in assets}
+    for a in selected_assets:
+        payload_assets.setdefault(a.id, a)
+    selected_payload = {
+        str(a.id): {
+            "id": a.id,
+            "tag": a.tag,
+            "name": a.name,
+            "department": a.location.department if a.location else None,
+            "location_name": a.location.name if a.location else None,
+        }
+        for a in payload_assets.values()
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="assets/labels.html",
+        context={
+            "assets": assets,
+            "total": total,
+            "search": search or "",
+            "selected_status": status_filter or "",
+            "selected_category": category_filter or "",
+            "selected_location": loc_id or "",
+            "selected_custodian": cust_id or "",
+            "selected_brand": brand_filter or "",
+            "selected_model": model_filter or "",
+            "selected_department": department_filter or "",
+            "locations": locations,
+            "custodians": custodians,
+            "departments": departments,
+            "categories": AssetCategory,
+            "statuses": AssetStatus,
+            "selected": selected or "",
+            "selected_list": [str(v) for v in selected_ids],
+            "selected_assets": selected_assets,
+            "selected_payload": selected_payload,
+            "page_ids": [a.id for a in assets],
+            "active_tab": "labels"
         }
     )
 

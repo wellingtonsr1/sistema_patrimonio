@@ -52,6 +52,9 @@
             <a class="sidebar-nav-item {% if active_tab == 'assets' %}active{% endif %}" href="/assets">
                 <i class="bi bi-laptop"></i> Equipamentos
             </a>
+            <a class="sidebar-nav-item {% if active_tab == 'labels' %}active{% endif %}" href="/assets/labels">
+                <i class="bi bi-upc-scan"></i> Etiquetas
+            </a>
             {% endif %}
             {% if can('movimentacao.visualizar') %}
             <a class="sidebar-nav-item {% if active_tab == 'movements' %}active{% endif %}" href="/movements">
@@ -156,6 +159,11 @@
                     <li class="nav-item">
                         <a class="nav-link {% if active_tab == 'assets' %}active{% endif %}" href="/assets">
                             <i class="bi bi-laptop me-1"></i> Equipamentos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'labels' %}active{% endif %}" href="/assets/labels">
+                            <i class="bi bi-upc-scan me-1"></i> Etiquetas
                         </a>
                     </li>
                     {% endif %}

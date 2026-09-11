@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Etiquetas de Patrimônio{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header no-print">
+    <div>
+        <h3 class="page-header-title"><i class="bi bi-upc-scan me-2"></i>Etiquetas de Patrimônio</h3>
+        <p class="page-header-subtitle">Selecione os equipamentos e imprima etiquetas com QR Code em lote.</p>
+    </div>
+</div>
+
+<!-- Filters (mesmos filtros da listagem de equipamentos) -->
+<div class="card p-3 mb-4 no-print">
+    <form method="get" action="/assets/labels" class="row g-2 align-items-center">
+        <input type="hidden" name="selected" value="{{ selected }}">
+        <div class="col-12 col-lg-4">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Buscar por patrimônio, série, marca, modelo, colaborador, setor ou localização..." value="{{ search }}">
+            </div>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+            <select name="status_filter" class="form-select">
+                <option value="">Status: Todos</option>
+                {% for s in statuses %}
+                <option value="{{ s.value }}" {% if selected_status == s.value %}selected{% endif %}>{{ s.value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-3 col-lg-2">
+            <select name="category_filter" class="form-select">
+                <option value="">Categoria: Todas</option>
+                {% for c in categories %}
+                <option value="{{ c.value }}" {% if selected_category == c.value %}selected{% endif %}>{{ c.value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <input type="text" name="brand_filter" class="form-control" placeholder="Marca" value="{{ selected_brand }}">
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <input type="text" name="model_filter" class="form-control" placeholder="Modelo" value="{{ selected_model }}">
+        </div>
+        <div class="col-12 col-md-4 col-lg-2">
+            <select name="location_id" class="form-select">
+                <option value="">Local: Todos</option>
+                {% for loc in locations %}
+                <option value="{{ loc.id }}" {% if selected_location|string == loc.id|string %}selected{% endif %}>{{ loc.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <select name="custodian_id" class="form-select">
+                <option value="">Colaborador: Todos</option>
+                {% for c in custodians %}
+                <option value="{{ c.id }}" {% if selected_custodian|string == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-3 col-lg-2">
+            <select name="department_filter" class="form-select">
+                <option value="">Setor: Todos</option>
+                {% for dept in departments %}
+                <option value="{{ dept }}" {% if selected_department == dept %}selected{% endif %}>{{ dept }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-6 col-lg-4 d-flex gap-2 align-items-end">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+            <a href="/assets/labels" class="btn btn-ghost" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Selection toolbar -->
+<div class="card p-3 mb-4 no-print">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <span class="text-muted small"><i class="bi bi-check2-square me-1"></i>Selecionados: <strong id="sel-count">{{ selected_list|length }}</strong></span>
+            <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="select-all-page">
+                <label class="form-check-label small" for="select-all-page">Selecionar todos exibidos</label>
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" id="clear-selection" {% if not selected_list %}disabled{% endif %}>
+                <i class="bi bi-x-lg me-1"></i>Limpar seleção
+            </button>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/assets/labels" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i>Voltar para seleção</a>
+            <button type="button" class="btn btn-primary" id="print-selected" {% if not selected_assets %}disabled{% endif %}>
+                <i class="bi bi-printer me-1"></i>Imprimir etiquetas
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Selection list -->
+<div class="card no-print">
+    <div class="card-header-clean">
+        <span class="text-muted small">Mostrando <strong>{{ assets|length }}</strong> de <strong>{{ total }}</strong> equipamentos</span>
+    </div>
+    {% if assets %}
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th style="width:36px;"></th>
+                    <th>Tombamento</th>
+                    <th>Equipamento / Modelo</th>
+                    <th>Setor</th>
+                    <th>Localização</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assets %}
+                <tr>
+                    <td>
+                        <input class="form-check-input asset-check" type="checkbox" value="{{ a.id }}"
+                               {% if a.id|string in selected_list %}checked{% endif %}>
+                    </td>
+                    <td><span class="tag-badge">{{ a.tag }}</span></td>
+                    <td>
+                        <span class="fw-semibold" style="color:var(--c-text);">{{ a.name }}</span>
+                        <div class="text-muted" style="font-size:.76rem;">
+                            {% if a.brand or a.model %}{{ a.brand or '' }} {{ a.model or '' }}{% endif %}
+                        </div>
+                    </td>
+                    <td class="small text-muted">
+                        {% if a.location and a.location.department %}{{ a.location.department }}{% else %}<span class="text-muted">—</span>{% endif %}
+                    </td>
+                    <td class="small text-muted">
+                        {% if a.location %}{{ a.location.name }}{% else %}<span class="text-muted">—</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-inbox empty-state-icon"></i>
+        <div class="empty-state-title">Nenhum equipamento encontrado</div>
+        <div class="empty-state-text">Tente ajustar os filtros para localizar os bens desejados.</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ===== Print preview (only this area is printed) ===== -->
+<div id="labels-print-area" class="labels-sheet" aria-label="Pré-visualização das etiquetas">
+    {% for a in selected_assets %}
+    <div class="label-card">
+        <div class="label-qr" data-label-qr="{{ a.id }}"></div>
+        <div class="label-info">
+            <div class="label-tag">{{ a.tag }}</div>
+            <div class="label-desc" title="{{ a.name }}">{{ a.name }}</div>
+            <div class="label-line">
+                <span class="label-k">Setor:</span>
+                {% if a.location and a.location.department %}<span class="label-v">{{ a.location.department }}</span>{% else %}<span class="label-v label-empty">—</span>{% endif %}
+            </div>
+            <div class="label-line">
+                <span class="label-k">Local:</span>
+                {% if a.location %}<span class="label-v" title="{{ a.location.name }}">{{ a.location.name }}</span>{% else %}<span class="label-v label-empty">—</span>{% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Mesma biblioteca e mesmo conteúdo da ficha do patrimônio (assets/detail.html):
+    // codifica a URL absoluta /assets/{id} via qrcode.js já carregada no base.html.
+    (function () {
+        document.querySelectorAll('.label-qr').forEach(function (el) {
+            var assetId = el.getAttribute('data-label-qr');
+            if (!assetId || typeof QRCode === 'undefined') return;
+            el.innerHTML = '';
+            new QRCode(el, {
+                text: window.location.origin + "/assets/" + assetId,
+                width: 92,
+                height: 92,
+                colorDark: "#111827",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        });
+    })();
+
+    // ===== Seleção em lote (state via URL ?selected=1,2,3) =====
+    (function () {
+        var pageIds = {{ page_ids | tojson }};
+        var selInput = document.getElementById('select-all-page');
+        var countEl = document.getElementById('sel-count');
+        var sheet = document.getElementById('labels-print-area');
+        var ASSETS = {{ selected_payload | tojson }};
+
+        function parseSel() {
+            var params = new URLSearchParams(window.location.search);
+            var out = [];
+            (params.get('selected') || '').split(',').forEach(function (p) {
+                var v = p.trim();
+                if (v && out.indexOf(v) === -1) out.push(v);
+            });
+            return out;
+        }
+
+        function buildLabel(a) {
+            var card = document.createElement('div');
+            card.className = 'label-card';
+            var qr = document.createElement('div');
+            qr.className = 'label-qr';
+            qr.setAttribute('data-label-qr', a.id);
+            var info = document.createElement('div');
+            info.className = 'label-info';
+            var tag = document.createElement('div');
+            tag.className = 'label-tag';
+            tag.textContent = a.tag;
+            var desc = document.createElement('div');
+            desc.className = 'label-desc';
+            desc.textContent = a.name;
+            var l1 = document.createElement('div');
+            l1.className = 'label-line';
+            l1.innerHTML = '<span class="label-k">Setor:</span> ';
+            var v1 = document.createElement('span');
+            v1.className = 'label-v' + (a.department ? '' : ' label-empty');
+            v1.textContent = a.department || '—';
+            l1.appendChild(v1);
+            var l2 = document.createElement('div');
+            l2.className = 'label-line';
+            l2.innerHTML = '<span class="label-k">Local:</span> ';
+            var v2 = document.createElement('span');
+            v2.className = 'label-v' + (a.location_name ? '' : ' label-empty');
+            v2.textContent = a.location_name || '—';
+            l2.appendChild(v2);
+            info.appendChild(tag);
+            info.appendChild(desc);
+            info.appendChild(l1);
+            info.appendChild(l2);
+            card.appendChild(qr);
+            card.appendChild(info);
+            return card;
+        }
+
+        function renderSheet(sel) {
+            if (!sheet) return;
+            sheet.innerHTML = '';
+            sel.forEach(function (id) {
+                if (ASSETS[id]) sheet.appendChild(buildLabel(ASSETS[id]));
+            });
+            if (typeof QRCode !== 'undefined') {
+                sheet.querySelectorAll('.label-qr').forEach(function (el) {
+                    new QRCode(el, {
+                        text: window.location.origin + "/assets/" + el.getAttribute('data-label-qr'),
+                        width: 92,
+                        height: 92,
+                        colorDark: "#111827",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                });
+            }
+        }
+
+        function saveSel(sel) {
+            var params = new URLSearchParams(window.location.search);
+            if (sel.length) { params.set('selected', sel.join(',')); } else { params.delete('selected'); }
+            var qs = params.toString();
+            history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+            renderSheet(sel);  // folha atualizada ao vivo — sem recarregar a página
+        }
+
+        function syncCount(sel) {
+            sel = sel || parseSel();
+            if (countEl) countEl.textContent = sel.length;
+            var printBtn = document.getElementById('print-selected');
+            if (printBtn) printBtn.disabled = sel.length === 0;
+            var clearBtn = document.getElementById('clear-selection');
+            if (clearBtn) clearBtn.disabled = sel.length === 0;
+            if (selInput) selInput.checked = pageIds.length > 0 && pageIds.every(function (id) { return sel.indexOf(String(id)) !== -1; });
+            document.querySelectorAll('.asset-check').forEach(function (chk) {
+                chk.checked = sel.indexOf(chk.value) !== -1;  // UI sempre coerente com o estado
+            });
+        }
+
+        document.querySelectorAll('.asset-check').forEach(function (chk) {
+            chk.addEventListener('change', function () {
+                var sel = parseSel();
+                var v = chk.value;
+                var idx = sel.indexOf(v);
+                if (chk.checked && idx === -1) sel.push(v);
+                if (!chk.checked && idx !== -1) sel.splice(idx, 1);
+                syncCount(sel);  // atualiza contagem/botões no mesmo evento
+                saveSel(sel);
+            });
+        });
+
+        if (selInput) {
+            selInput.addEventListener('change', function () {
+                var sel = parseSel();
+                pageIds.forEach(function (id) {
+                    var v = String(id);
+                    var idx = sel.indexOf(v);
+                    if (selInput.checked && idx === -1) sel.push(v);
+                    if (!selInput.checked && idx !== -1) sel.splice(idx, 1);
+                });
+                syncCount(sel);  // atualiza contagem/botões no mesmo evento
+                saveSel(sel);
+            });
+        }
+
+        var clearBtn = document.getElementById('clear-selection');
+        if (clearBtn) clearBtn.addEventListener('click', function () { syncCount([]); saveSel([]); });
+
+        var printBtn = document.getElementById('print-selected');
+        if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
+
+        syncCount();
+    })();
+</script>
+{% endblock %}
