@@ -156,15 +156,14 @@
                         </a>
                     </li>
                     {% if can('patrimonio.visualizar') %}
-                    <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'assets' %}active{% endif %}" href="/assets">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if active_tab == 'assets' or active_tab == 'labels' %}active{% endif %}" href="/assets" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-laptop me-1"></i> Equipamentos
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if active_tab == 'labels' %}active{% endif %}" href="/assets/labels">
-                            <i class="bi bi-upc-scan me-1"></i> Etiquetas
-                        </a>
+                        <ul class="dropdown-menu shadow-sm border-0 mt-2">
+                            <li><a class="dropdown-item py-2 {% if active_tab == 'assets' %}active{% endif %}" href="/assets"><i class="bi bi-laptop me-1" style="color:var(--color-primary);"></i>Equipamentos &amp; Bens</a></li>
+                            <li><a class="dropdown-item py-2 {% if active_tab == 'labels' %}active{% endif %}" href="/assets/labels"><i class="bi bi-upc-scan me-1" style="color:var(--color-primary);"></i>Etiquetas</a></li>
+                        </ul>
                     </li>
                     {% endif %}
                     {% if can('movimentacao.visualizar') %}
