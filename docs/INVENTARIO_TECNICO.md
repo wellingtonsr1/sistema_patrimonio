@@ -89,7 +89,7 @@
 | Módulo | Funções-chave |
 |---|---|
 | `asset_service.py` | `AssetService.get_all/get_by_id/get_by_tag/create/update/calculate_depreciation` |
-| `movement_service.py` | `MovementService.create_movement` (motor do fluxo), `get_by_id`, `get_by_uuid`, `get_timeline_for_asset` (dicts: movimentações + auditoria — ⚠ ver ARQUITETURA §18.11), `get_all_movements`, `get_term_details` |
+| `movement_service.py` | `MovementService.create_movement` (motor do fluxo), `get_by_id`, `get_by_uuid`, `get_timeline_for_asset` (dicts: movimentações + auditoria, com dedup de `CRIACAO`), `get_all_movements`, `get_term_details` |
 | `maintenance_service.py` | `MaintenanceService.get_all/get_by_id/create/complete_maintenance` |
 | `custodian_service.py` | `CustodianService.get_all/get_by_id/get_by_registration_code/create/update/get_assigned_assets/count_assigned_assets` |
 | `location_service.py` | `LocationService.get_all/get_by_id/get_by_name/create/update/count_assets` |
@@ -152,7 +152,7 @@ QRCode.js, Google Fonts (Plus Jakarta Sans).
 
 ---
 
-## 8. Testes (`tests/`) — 12 arquivos, 156 testes (153 passam; 3 falhas conhecidas — ver ARQUITETURA §19)
+## 8. Testes (`tests/`) — 12 arquivos, 156 testes — **156/156 passando**
 
 | Arquivo | Qtde | Escopo |
 |---|---|---|

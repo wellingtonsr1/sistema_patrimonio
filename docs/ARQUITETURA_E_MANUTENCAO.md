@@ -919,35 +919,25 @@ Constantes não-env: `APP_NAME`, `APP_VERSION`, `APP_DESCRIPTION`, `COMPANY_NAME
 9. Sem `LICENSE` no repositório.
 10. `data/patrimonio.db` é versionado no repositório atual (arquivo binário alterado a cada
     execução local) — o README recomenda não versionar dados reais.
-11. **`movement_service.py` linha ~210 (`get_timeline_for_asset`)** referencia a constante
-    inexistente `ACTION_MOVEMENT`/`ACTION_MAINTENANCE` (as corretas são `ACTION_MOVEMENT` =
-    `"MOVIMENTACAO"` e `ACTION_MAINTENANCE` = `"MANUTENCAO"`, já definidas em
-    `audit_service.py`, mas não importadas no módulo). Resultado: `NameError` quando a linha
-    do tempo encontra um evento de auditoria — **quebra a página de detalhes do bem
-    (`/assets/{id}`), o endpoint `/api/v1/assets/{id}/timeline` e o CLI `show`**. Coberto
-    pelos 3 testes atualmente falhando (ver §19). Registrado como ponto de atenção — não
-    corrigido nesta documentação (fora do escopo).
+11. **`movement_service.py` (`get_timeline_for_asset`) — RESOLVIDO.** O módulo referenciava
+    as constantes `ACTION_MOVEMENT`/`ACTION_MAINTENANCE` sem importá-las (`NameError` quando a
+    linha do tempo encontrava um evento de auditoria), quebrando a página de detalhes do bem
+    (`/assets/{id}`), o endpoint `/api/v1/assets/{id}/timeline` e o CLI `show`. **Corrigido:**
+    as constantes são importadas de `audit_service`; o endpoint da API foi alinhado ao contrato
+    real (itens `{'type', 'timestamp', 'data'}` serializados explicitamente) e o evento
+    `CRIACAO` do bem não é mais duplicado na timeline (já representado pelo movimento
+    `ENTRADA_AQUISICAO`). Suíte completa: 156/156.
 
 ---
 
 ## 19. Testes
 
 A suíte atual tem **12 arquivos e 156 testes coletados** (confirmado com `pytest --collect-only`):
-153 passam e **3 falham com o mesmo erro latente** documentado no §18 item 11 (`NameError:
-ACTION_MOVEMENT` em `movement_service.get_timeline_for_asset`) — os testes esperam objetos
-ORM e a função atual retorna dicts mesclando movimentações + auditoria; o bug de importação
-atinge o mesmo fluxo. Cobrem autenticação, RBAC, integração AD (com LDAP mockado), API,
-movimentações, bens, etiquetas, navbar, importações e central de ajuda.
+**156/156 passando** (as 3 falhas antigas do fluxo de timeline foram corrigidas — ver §18.11).
+Cobrem autenticação, RBAC, integração AD (com LDAP mockado), API, movimentações, bens,
+etiquetas, navbar, importações e central de ajuda.
 
 Execução: `pytest -v` (ou `python -m pytest tests/`).
-
-### Falhas conhecidas (estado real, não corrigidas nesta documentação)
-
-| Teste | Erro |
-|---|---|
-| `tests/test_movements.py::test_asset_creation_registers_initial_movement` | `'dict' object has no attribute 'movement_type'` (timeline retorna dicts) |
-| `tests/test_movements.py::test_allocation_and_custody_flow` | idem |
-| `tests/test_api.py::test_api_create_asset_and_move` | `NameError: name 'ACTION_MOVEMENT' is not defined` (`movement_service.py:210`) |
 
 ### Distribuição por arquivo
 
@@ -1223,8 +1213,8 @@ app.cli ──► services/* (mesma camada de negócio das rotas)
 9. **Testes**: `pytest` deve continuar passando; comportamentos de segurança (403/401,
    lockout, último admin, sem-mapeamento-AD) têm testes dedicados que precisam ser preservados.
 10. **Atenção aos pontos de atenção listados em §18** (CSRF, `AUTH_PROVIDER` inerte, envs
-    legadas de AD, datas `now` × `utcnow`, `NameError` latente em `get_timeline_for_asset`,
-    catálogo com permissões sem rota) antes de qualquer mudança nessas áreas.
+    legadas de AD, datas `now` × `utcnow`, catálogo com permissões sem rota) antes de qualquer
+    mudança nessas áreas.
 
 ---
 

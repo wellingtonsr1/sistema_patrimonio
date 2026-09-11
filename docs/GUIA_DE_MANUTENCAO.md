@@ -145,11 +145,10 @@ pytest tests/test_ad.py -v          # apenas AD
 pytest tests/test_rbac.py -v        # apenas RBAC
 ```
 
-> **Estado atual (registrado, não corrigido nesta documentação):** 3 testes falham com o
-> mesmo erro latente — `NameError: ACTION_MOVEMENT` em `movement_service.get_timeline_for_asset`
-> (a função também passou a retornar dicts, quebrando testes antigos que esperavam objetos ORM).
-> **Impacto real: as páginas de detalhes do bem (`/assets/{id}`) podem falhar com erro 500.**
-> Detalhes em `ARQUITETURA_E_MANUTENCAO.md` §18 item 11 e §19.
+> **Status:** a antiga falha da timeline (`NameError: ACTION_MOVEMENT` em
+> `movement_service.get_timeline_for_asset`) **já foi corrigida** — a suíte está 100% verde
+> (156/156) e a ficha do bem (`/assets/{id}`), a API de timeline e o CLI `show` funcionam.
+> Detalhes em `ARQUITETURA_E_MANUTENCAO.md` §18.11 e §19.
 
 ---
 
@@ -204,15 +203,12 @@ cards em `CATEGORIES`. Nenhum código de rota precisa mudar para editar conteúd
 
 ## Problemas conhecidos (registrados — ver detalhes em ARQUITETURA §18)
 
-1. **`NameError` latente em `movement_service.get_timeline_for_asset`** (constantes
-   `ACTION_MOVEMENT`/`ACTION_MAINTENANCE` não importadas): detalhes do bem
-   (`/assets/{id}`), endpoint de timeline e CLI `show` podem falhar com 500.
-2. **Sem proteção CSRF** nos formulários web (mitigado parcialmente por `SameSite=Lax`).
-3. **`AUTH_PROVIDER` inerte** — o login real usa `resolve_authentication()`.
-4. **`seed_demo.py` apaga o banco** (`drop_all`) — nunca apontar para o banco real.
-5. **Permissões sem rota**: `patrimonio.excluir`, `movimentacao.editar`,
+1. **Sem proteção CSRF** nos formulários web (mitigado parcialmente por `SameSite=Lax`).
+2. **`AUTH_PROVIDER` inerte** — o login real usa `resolve_authentication()`.
+3. **`seed_demo.py` apaga o banco** (`drop_all`) — nunca apontar para o banco real.
+4. **Permissões sem rota**: `patrimonio.excluir`, `movimentacao.editar`,
    `movimentacao.cancelar`, `manutencao.editar` existem no catálogo, mas nenhuma rota as exige.
-6. **Datas mistas**: `datetime.now()` (hora local) em `asset_service`/`movement_service` vs.
+5. **Datas mistas**: `datetime.now()` (hora local) em `asset_service`/`movement_service` vs.
    `datetime.utcnow()` em auth/sessões/modelos.
 
 ---

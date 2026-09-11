@@ -8,7 +8,7 @@ from app.models.location import Location
 from app.models.custodian import Custodian
 from app.models.audit_log import AuditLog
 from app.models.enums import MovementType, AssetStatus, AssetCondition
-from app.services.audit_service import ACTION_CREATE, ACTION_UPDATE, RESULT_SUCCESS
+from app.services.audit_service import ACTION_CREATE, ACTION_UPDATE, ACTION_MOVEMENT, ACTION_MAINTENANCE, RESULT_SUCCESS
 import json as json_lib
 from app.schemas.movement import MovementCreate, MovementFilter
 from app.config import COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS
@@ -206,8 +206,10 @@ class MovementService:
         
         # Adiciona eventos de auditoria relevantes
         for a in audit_events:
-            # Evita duplicar eventos que já estão como movimentações
-            if a.action in [ACTION_MOVEMENT, ACTION_MAINTENANCE]:
+            # Evita duplicar eventos que já estão representados como movimentações:
+            # - MOVIMENTACAO/MANUTENCAO: o próprio fluxo grava a movimentação equivalente;
+            # - CRIACAO do bem: já contada como o movimento inicial ENTRADA_AQUISICAO.
+            if a.action in [ACTION_MOVEMENT, ACTION_MAINTENANCE, ACTION_CREATE]:
                 continue
             
             # Desserializa os dados anteriores/posteriores se existirem

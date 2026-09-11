@@ -28,11 +28,13 @@ def test_asset_creation_registers_initial_movement(db_session):
     assert asset.status == AssetStatus.AVAILABLE
 
     # Verifica se o primeiro movimento foi gerado
+    # (a timeline retorna dicts: {'type': 'movement'|'audit', 'data': Movement|AuditLog, ...})
     timeline = MovementService.get_timeline_for_asset(db_session, asset.id)
     assert len(timeline) == 1
-    assert timeline[0].movement_type == MovementType.ACQUISITION
-    assert timeline[0].destination_location_id == loc.id
-    assert "Tombamento inicial" in timeline[0].reason
+    assert timeline[0]["type"] == "movement"
+    assert timeline[0]["data"].movement_type == MovementType.ACQUISITION
+    assert timeline[0]["data"].destination_location_id == loc.id
+    assert "Tombamento inicial" in timeline[0]["data"].reason
 
 
 def test_allocation_and_custody_flow(db_session):
@@ -72,10 +74,12 @@ def test_allocation_and_custody_flow(db_session):
     assert asset.custodian_id == cust.id
 
     # Verifica histórico completo do fluxo
+    # (a timeline retorna dicts: {'type': 'movement'|'audit', 'data': Movement|AuditLog, ...})
     timeline = MovementService.get_timeline_for_asset(db_session, asset.id)
     assert len(timeline) == 2
-    assert timeline[0].movement_type == MovementType.ALLOCATION
-    assert timeline[1].movement_type == MovementType.ACQUISITION
+    assert timeline[0]["type"] == "movement"
+    assert timeline[0]["data"].movement_type == MovementType.ALLOCATION
+    assert timeline[1]["data"].movement_type == MovementType.ACQUISITION
 
 
 def test_return_to_stock_flow(db_session):

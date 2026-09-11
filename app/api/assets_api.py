@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, Request, status
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -73,13 +73,63 @@ def get_asset_by_tag(tag: str, db: Session = Depends(get_db)):
     return asset
 
 
-@router.get("/{asset_id}/timeline", response_model=List[MovementRead], dependencies=[Depends(require_permission("patrimonio.visualizar"))])
+@router.get("/{asset_id}/timeline", response_model=List[Dict[str, Any]], dependencies=[Depends(require_permission("patrimonio.visualizar"))])
 def get_asset_timeline(asset_id: int, db: Session = Depends(get_db)):
-    """Retorna toda a linha do tempo / fluxo de movimentação do equipamento (patrimonio.visualizar)"""
+    """Retorna toda a linha do tempo do equipamento — movimentações + eventos de auditoria
+    (patrimonio.visualizar). Cada item: {'type': 'movement'|'audit', 'timestamp', 'data'};
+    eventos de auditoria incluem 'prev_data'/'new_data' desserializados."""
     asset = AssetService.get_by_id(db, asset_id)
     if not asset:
         raise HTTPException(status_code=404, detail="Equipamento não encontrado")
-    return MovementService.get_timeline_for_asset(db, asset_id)
+    timeline = MovementService.get_timeline_for_asset(db, asset_id)
+    # Serializa de forma explícita: Movement vira payload JSON limpo (enum, datas, nomes
+    # de origem/destino); AuditLog vira os campos relevantes do registro de auditoria.
+    response = []
+    for item in timeline:
+        data = item["data"]
+        if item["type"] == "movement":
+            payload = {
+                "id": data.id,
+                "movement_uuid": data.movement_uuid,
+                "asset_id": data.asset_id,
+                "movement_type": data.movement_type.value if hasattr(data.movement_type, "value") else data.movement_type,
+                "timestamp": data.timestamp,
+                "origin_location_id": data.origin_location_id,
+                "origin_location_name": data.origin_location_name,
+                "origin_custodian_id": data.origin_custodian_id,
+                "origin_custodian_name": data.origin_custodian_name,
+                "destination_location_id": data.destination_location_id,
+                "destination_location_name": data.destination_location_name,
+                "destination_custodian_id": data.destination_custodian_id,
+                "destination_custodian_name": data.destination_custodian_name,
+                "previous_status": data.previous_status.value if hasattr(data.previous_status, "value") else data.previous_status,
+                "new_status": data.new_status.value if hasattr(data.new_status, "value") else data.new_status,
+                "previous_condition": data.previous_condition.value if hasattr(data.previous_condition, "value") else data.previous_condition,
+                "new_condition": data.new_condition.value if hasattr(data.new_condition, "value") else data.new_condition,
+                "reason": data.reason,
+                "operator_name": data.operator_name,
+                "term_code": data.term_code,
+            }
+        else:
+            payload = {
+                "id": data.id,
+                "action": data.action,
+                "module": data.module,
+                "resource": data.resource,
+                "resource_id": data.resource_id,
+                "resource_ref": data.resource_ref,
+                "username": data.username,
+                "result": data.result,
+                "description": data.description,
+                "previous_data": item.get("prev_data"),
+                "new_data": item.get("new_data"),
+            }
+        response.append({
+            "type": item["type"],
+            "timestamp": item["timestamp"],
+            "data": payload,
+        })
+    return response
 
 
 @router.get("/{asset_id}/depreciation", dependencies=[Depends(require_permission("patrimonio.visualizar"))])

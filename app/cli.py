@@ -107,7 +107,11 @@ def main():
             print("-" * 65)
             print(" HISTÓRICO DE FLUXO DE MOVIMENTAÇÕES (AUDIT TRAIL):")
             print("-" * 65)
-            for m in timeline:
+            for item in timeline:
+                # A timeline é uma lista de dicts: {'type': 'movement'|'audit', 'data': ...}
+                if item.get("type") != "movement":
+                    continue  # eventos de auditoria genéricos não fazem parte do fluxo do CLI
+                m = item["data"]
                 dt = m.timestamp.strftime("%d/%m/%Y %H:%M")
                 print(f"[{dt}] {m.movement_type.value}")
                 print(f"  Origem:  {m.origin_location_name or '-'} ({m.origin_custodian_name or '-'})")
