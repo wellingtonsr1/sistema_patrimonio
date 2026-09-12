@@ -27,22 +27,26 @@
     <link rel="stylesheet" href="/static/css/style.css?v=20260905">
 </head>
 <body>
-    <div class="d-flex align-items-center justify-content-center" style="min-height:100vh;min-height:100dvh;padding:1.5rem;">
+    <div class="d-flex align-items-center justify-content-center" style="min-height:100vh;min-height:100dvh;padding:0.5rem;">
         <div class="w-100" style="max-width:460px;">
             <!-- Brand -->
-            <div class="text-center mb-4">
-                <span class="navbar-brand-icon d-inline-flex" style="width:52px;height:52px;font-size:1.4rem;">
-                    <i class="bi bi-box-seam"></i>
-                </span>
-                <h4 class="fw-bold mt-3 mb-0" style="letter-spacing:-.02em;">SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;vertical-align:middle;">PRO</span></h4>
+            <div class="text-center mb-3">
+                <img src="/static/img/Logo IPMjp_.png" alt="" class="navbar-brand-logo" style="width:220px;height:140px;">
+                
+                <h4 class="fw-bold mt-0 mb-0" style="letter-spacing:-.02em;"> 
+                    <span class="navbar-brand-icon d-inline-flex" style="width:20px;height:20px;font-size:1.4rem;">
+                        <i class="bi bi-box-seam"></i>
+                    </span>
+                    SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;vertical-align:middle;">PRO</span>
+                </h4>
                 <p class="text-muted small mt-1 mb-0">Gestão Patrimonial &amp; Fluxo de Movimentação</p>
             </div>
 
             <!-- Configuração Inicial Card -->
             <div class="card shadow-sm border-0" style="border-radius:14px;background:var(--c-surface);">
-                <div class="card-body p-4 p-md-5">
+                <div class="card-body p-4 p-md-1">
                     <h5 class="fw-bold mb-1" style="font-size:1.05rem;">Configuração Inicial</h5>
-                    <p class="text-muted small mb-4">Crie o administrador do sistema para continuar.</p>
+                    <p class="text-muted small mb-3">Crie o administrador do sistema para continuar.</p>
 
                     {% if error %}
                     <div class="alert alert-danger d-flex align-items-center gap-2 py-2 small mb-4" role="alert">
@@ -79,6 +83,9 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-lock"></i></span>
                                 <input type="password" id="password" name="password" class="form-control border-start-0" placeholder="Crie uma senha" required autocomplete="new-password" minlength="8">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility('password', 'toggleIcon')">
+                                    <i class="bi bi-eye-slash" id="toggleIcon"></i>
+                                </button>
                             </div>
                             <small class="text-muted mt-1 d-block">Mínimo 8 caracteres.</small>
                         </div>
@@ -87,6 +94,9 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-lock-fill"></i></span>
                                 <input type="password" id="confirm_password" name="confirm_password" class="form-control border-start-0" placeholder="Confirme sua senha" required autocomplete="new-password" minlength="8">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" onclick="togglePasswordVisibility('confirm_password', 'toggleConfirmIcon')">
+                                    <i class="bi bi-eye-slash" id="toggleConfirmIcon"></i>
+                                </button>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
